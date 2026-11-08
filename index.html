@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulatore fotovoltaico</title>
+<style>
+:root{
+  --bg:#f4f5f7; --card:#fff; --ink:#14181f; --muted:#5b6473; --line:#e2e5ea; --soft:#f0f2f5;
+  --blue:#3b7ddd; --slate:#6b7f99; --amber:#d99a0b; --green:#2f9e6e; --violet:#7a5cd6; --red:#c2410c;
+  --barbg:rgba(244,245,247,.96); --shadow:0 1px 2px rgba(20,24,31,.06),0 4px 14px rgba(20,24,31,.04);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1217; --card:#171b22; --ink:#e8ebf0; --muted:#98a2b3; --line:#262c36; --soft:#1e232c;
+  --blue:#5b9bf0; --slate:#8da1bb; --amber:#f2b83a; --green:#46c28d; --violet:#a48cf0; --red:#f08a5d; --barbg:rgba(15,18,23,.96); --shadow:none;}}
+:root[data-theme="dark"]{
+  --bg:#0f1217; --card:#171b22; --ink:#e8ebf0; --muted:#98a2b3; --line:#262c36; --soft:#1e232c;
+  --blue:#5b9bf0; --slate:#8da1bb; --amber:#f2b83a; --green:#46c28d; --violet:#a48cf0; --red:#f08a5d; --barbg:rgba(15,18,23,.96); --shadow:none;}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:8px 20px 4px;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+h1{font-size:19px;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13px}
+.barfix{position:sticky;top:0;z-index:50;background:var(--barbg);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);max-height:55vh;overflow-y:auto}
+.barwrap{max-width:1280px;margin:0 auto;padding:5px 14px 6px}
+.barrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 9px}
+.barrow label{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);white-space:nowrap}
+.barrow select,.barrow input{padding:2px 4px;font-size:12.5px;border-radius:6px;height:26px;max-width:122px}
+.barrow .mini{width:52px}.barrow input[type=month]{width:112px;max-width:112px;font-size:12px}
+.gt{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-left:2px solid var(--line);padding-left:6px;margin-left:3px}
+.gt:first-child{border-left:0;padding-left:0;margin-left:0}
+.barsum{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.barsum span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.barbtn{padding:2px 9px;font-size:12px;height:26px;margin-left:auto}
+main{max-width:1280px;margin:0 auto;padding:12px 16px 56px;display:grid;gap:18px}
+main>*{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:17px;margin:0 0 3px;letter-spacing:-.005em}
+.card h3{font-size:14px;margin:18px 0 4px}
+.card h4{margin:12px 0 4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.lead{color:var(--muted);font-size:13.5px;margin:0 0 10px;max-width:92ch}
+.what{color:var(--muted);font-size:12.5px;margin:0 0 6px;border-left:3px solid var(--line);padding-left:8px}
+.sec{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:14px 2px -8px;font-weight:700}
+.grid{display:grid;gap:16px}.grid>*{min-width:0}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:900px){.g2,.g3{grid-template-columns:1fr}}
+.verdict{font-size:16px;line-height:1.6;border-left:5px solid var(--green);padding:4px 0 4px 14px}
+.sugg{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:7px}
+.sugg li{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px}
+.sugg li.k{border-color:var(--green);background:color-mix(in srgb,var(--green) 8%,var(--card))}
+select,input,button,textarea{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+button{cursor:pointer}button:hover{border-color:var(--muted)}
+button.pri{background:var(--green);border-color:var(--green);color:#fff}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:4px 11px;background:transparent;font-size:13px}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chartbox{position:relative;height:280px;overflow:hidden;width:100%}
+.chartbox canvas{max-width:100%}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:600;font-size:12px;white-space:nowrap}
+td{white-space:nowrap}td.w,th.w{white-space:normal}
+tr.cur td,td.cur,th.cur{background:color-mix(in srgb,var(--green) 13%,transparent)}
+.tscroll{overflow-x:auto}
+.note{border-left:4px solid var(--green);padding:4px 0 4px 12px;margin:6px 0;font-size:13.5px}
+.note.v{border-color:var(--violet)}.note.a{border-color:var(--amber)}.note.r{border-color:var(--red)}
+details>summary{cursor:pointer;font-weight:600;font-size:14px}details{margin-top:10px}
+.chip{display:inline-block;background:var(--soft);border-radius:99px;padding:1px 9px;font-size:12px;color:var(--muted)}
+.row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+code{background:var(--soft);padding:0 5px;border-radius:5px;font-size:12.5px}
+.del{border:0;background:transparent;color:var(--red);padding:0 4px}
+.bd{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.02em;padding:0 6px;border-radius:99px;margin-left:5px;vertical-align:1px;border:1px solid;cursor:help;white-space:nowrap}
+.bd.bolletta{color:var(--green);border-color:var(--green)}.bd.pvgis{color:var(--blue);border-color:var(--blue)}
+.bd.web{color:var(--violet);border-color:var(--violet)}.bd.stima{color:var(--amber);border-color:var(--amber)}
+.bd.confermare{color:var(--red);border-color:var(--red);background:color-mix(in srgb,var(--red) 10%,transparent)}
+.bd.calcolo{color:var(--muted);border-color:var(--muted)}.bd.scelta{color:var(--slate);border-color:var(--slate)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin:2px 0 0}
+input.ov{width:96px;text-align:right}
+input.ov.mod{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,var(--card))}
+.params{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px 14px}
+.params label{display:flex;flex-direction:column;font-size:12.5px;color:var(--muted);gap:3px}
+.params input,.params select{width:100%}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.steps li{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;padding:9px 12px;border:1px solid var(--line);border-radius:10px}
+.steps .n{font-size:17px;font-weight:650;text-align:right;white-space:nowrap}
+.steps .d{font-size:12.5px;color:var(--muted)}
+.cards2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:700px){.cards2{grid-template-columns:1fr}}
+.sc{border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.sc.A{border-left:5px solid var(--green)}.sc.B{border-left:5px solid var(--violet)}
+.sc h4{margin:0 0 4px;color:var(--ink);text-transform:none;font-size:14px;letter-spacing:0}
+.sc div{font-size:13px;color:var(--muted)}.sc b{color:var(--ink)}
+.pbtn{padding:2px 10px;height:26px;font-size:12.5px;font-weight:650;border-radius:99px;margin-right:4px}
+.pbtn.on{background:var(--green);border-color:var(--green);color:#fff}
+#presetBtns{display:inline-flex;flex-wrap:wrap;gap:2px}
+table.heat td{text-align:center;min-width:74px;position:relative;font-variant-numeric:tabular-nums}
+table.heat td.best{outline:2px solid var(--green);outline-offset:-2px;font-weight:700}
+table.heat td.off{opacity:.35}
+table.heat .tag{position:absolute;top:1px;right:3px;font-size:9.5px;font-weight:800;color:var(--ink)}
+.tagA{color:var(--green)!important}.tagB{color:var(--violet)!important}
+.hero{background:linear-gradient(135deg,#0e3b2e,#1d6f55 55%,#d99a0b);color:#fff;padding:34px 20px}
+.hero-in{max-width:1280px;margin:0 auto}
+.hero .eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.85}
+.hero h2{font-size:clamp(22px,4vw,34px);margin:8px 0 10px;max-width:24ch;line-height:1.15}
+.hero p{max-width:70ch;opacity:.95;margin:0 0 16px}
+.hero-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.hero-cards div{background:rgba(255,255,255,.14);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.hero-cards b{font-size:14px}.hero-note{margin-top:14px;font-size:12px;opacity:.85}
+</style>
+</head>
+<body>
+<section class="hero">
+  <div class="hero-in">
+    <div class="eyebrow">Progetto open source · dati di esempio anonimizzati</div>
+    <h2>Conviene davvero il fotovoltaico? Un simulatore che lo calcola ora per ora.</h2>
+    <p>Parte dalle bollette reali di una casa, aggiunge la produzione solare di ogni mese (PVGIS), simula batteria, auto elettrica, pompa di calore e condizionatori, e dice quale impianto rende di più per ogni modo di usare la casa.</p>
+    <div class="hero-cards">
+      <div><b>☀️ Curve reali</b><span>Produzione solare e giornata tipo per mese, 24 ore.</span></div>
+      <div><b>🔋 Batteria e rete</b><span>Cosa usi, cosa accumuli, cosa vendi, per fascia oraria.</span></div>
+      <div><b>🚗 Auto e pompa</b><span>Ogni scelta con il suo conto e il suo rientro.</span></div>
+      <div><b>🎯 Suggerimento</b><span>Mappa di 45 configurazioni per 6 usi della casa.</span></div>
+    </div>
+    <div class="hero-note">I consumi sono scalati e privi di indirizzo e identificativi: i numeri mostrano come funziona il metodo, non una casa vera. I prezzi sono stime di mercato modificabili.</div>
+  </div>
+</section>
+<header>
+  <div>
+    <h1>Fotovoltaico, batteria, pompa di calore e auto elettrica</h1>
+    <div class="sub">Casa di esempio in Puglia · tetto unico: un solo impianto, una sola batteria</div>
+  </div>
+  <div class="bar"><span class="sub" id="srcInfo"></span><button id="themeBtn" title="Tema chiaro/scuro">◐</button></div>
+</header>
+
+<div class="barfix"><div class="barwrap">
+  <div class="barrow" id="presetRow">
+    <span class="gt">Scenari rapidi</span>
+    <span id="presetBtns"></span>
+    <label title="Se attivo, ogni scenario imposta anche le taglie A e B suggerite per quell'uso"><input type="checkbox" id="presetAB" checked> anche taglie A/B</label>
+    <span class="sub" id="presetDesc" style="flex:1 1 320px"></span>
+  </div>
+  <div class="barrow" id="groups">
+    <span class="gt">Casa</span>
+    <label>Piani<select data-k="ap"><option value="secondo">solo 2°</option><option value="both">1° + 2°</option><option value="primo">solo 1°</option></select></label>
+    <label>1° piano<select data-k="primoMode"><option value="secondo">come il 2°</option><option value="proprio">suoi consumi</option><option value="spento">spento</option></select></label>
+    <label>Periodo<select data-k="range"><option value="norm">normalizzati</option><option value="validi">tutti i mesi validi</option><option value="storico">≤ set 2023</option><option value="set2025">12m a set 2025</option><option value="ultimi12">ultimi 12m validi</option><option value="custom">altro…</option></select>
+      <span data-show="range=custom"><input type="month" data-k="rFrom" title="Da"> <input type="month" data-k="rTo" title="A"></span></label>
+    <label>Orario<select data-k="profilo"><option value="misto">misto</option><option value="fuori">fuori casa</option><option value="casa">in casa</option><option value="curva" id="optCurva">curva reale</option></select></label>
+    <label>Effic.<select data-k="efficSel"><option value="0">0%</option><option value="10">−10%</option><option value="20">−20%</option><option value="custom">altro</option></select>
+      <input class="mini" type="number" min="0" max="60" step="1" data-k="efficCustom" data-show="efficSel=custom" placeholder="%"></label>
+    <span class="gt">Impianto</span>
+    <label>Tetto<select data-k="tetto"><option value="piatto_sud">piano, sud</option><option value="piatto_ew">piano, E-O</option><option value="falda_sud">falda sud</option><option value="falda_sdso">falda SE-SO</option><option value="falda_eo">falda E o O</option></select></label>
+    <label>A<select data-k="kwpA" title="Scenario A: potenza"><option value="3">3 kWp</option><option value="4.5">4,5 kWp</option><option value="6">6 kWp</option><option value="8">8 kWp</option><option value="10">10 kWp</option><option value="custom">altro</option></select><input class="mini" type="number" min="1" max="20" step="0.5" data-k="kwpACustom" data-show="kwpA=custom" placeholder="kWp">
+      <select data-k="battA" title="Scenario A: batteria"><option value="0">no batt.</option><option value="5">5 kWh</option><option value="10">10 kWh</option><option value="15">15 kWh</option><option value="20">20 kWh</option><option value="custom">altro</option></select><input class="mini" type="number" min="1" max="40" step="1" data-k="battACustom" data-show="battA=custom" placeholder="kWh"></label>
+    <label>B<select data-k="kwpB" title="Scenario B: potenza"><option value="3">3 kWp</option><option value="4.5">4,5 kWp</option><option value="6">6 kWp</option><option value="8">8 kWp</option><option value="10">10 kWp</option><option value="custom">altro</option></select><input class="mini" type="number" min="1" max="20" step="0.5" data-k="kwpBCustom" data-show="kwpB=custom" placeholder="kWp">
+      <select data-k="battB" title="Scenario B: batteria"><option value="0">no batt.</option><option value="5">5 kWh</option><option value="10">10 kWh</option><option value="15">15 kWh</option><option value="20">20 kWh</option><option value="custom">altro</option></select><input class="mini" type="number" min="1" max="40" step="1" data-k="battBCustom" data-show="battB=custom" placeholder="kWh"></label>
+    <span class="gt">Futuro</span>
+    <label>Calore<select data-k="heating"><option value="no">caldaia gas</option><option value="secondo">pompa 2° piano</option><optgroup label="Dopo ristrutturazione 1°"><option value="unica">pompa unica</option><option value="due">2 pompe</option><option value="primo">pompa solo 1°</option></optgroup></select></label>
+    <label>Clima inverno<select data-k="climaInv" title="Usare i condizionatori anche per scaldare, nelle ore di sole"><option value="no">no</option><option value="si">sì</option></select></label>
+    <label>Auto<select data-k="car"><option value="0">Auto diesel</option><option value="1">1 elettrica</option><option value="2">2 elettriche</option></select></label>
+    <label>Costo auto<select data-k="carCost"><option value="pieno">prezzo pieno</option><option value="extra">sovrapprezzo</option><option value="nessuno">escluso</option></select></label>
+    <span class="gt">Prezzi</span>
+    <label>Scenario<select data-k="price"><option value="base">di oggi</option><option value="prudente">prudente</option><option value="ottimista">ottimistico</option></select></label>
+    <label>Detraz.<select data-k="detr"><option value="2026p">50% · prima '26</option><option value="2026a">36% · altra '26</option><option value="2027p">36% · prima '27</option><option value="2027a">30% · altra '27</option></select></label>
+    <label>Inc. pompa<select data-k="incPdc"><option value="detr">detrazione</option><option value="ct">Conto Term.</option><option value="nessuno">nessuno</option></select></label>
+    <button class="barbtn" id="barToggle" title="Comprimi la barra">▴</button>
+  </div>
+  <div class="barsum" id="barSumRow" hidden><span id="barSum"></span><button class="barbtn" id="barToggle2" title="Mostra le impostazioni">Impostazioni ▾</button></div>
+</div></div>
+
+<main>
+  <div class="legend" id="legendTop"></div>
+
+  <div class="sec">1 · Cosa conviene</div>
+  <section class="card" id="sConsiglio">
+    <h2>Il suggerimento, in parole semplici</h2>
+    <p class="lead">Calcolato su sei modi diversi di usare la casa (oggi, con auto elettrica, con pompa di calore, con due appartamenti…). Se cambi le ipotesi nella barra o nelle tabelle, il suggerimento si aggiorna.</p>
+    <ul class="sugg" id="sugg"></ul>
+    <h3>I due scenari che stai confrontando</h3>
+    <div class="cards2" id="recap"></div>
+    <div class="tscroll" style="margin-top:10px"><table id="tScenari"></table></div>
+    <div id="avvisi" style="margin-top:8px"></div>
+  </section>
+
+  <div class="sec">2 · Quale configurazione, per quale uso</div>
+  <section class="card" id="sConfig">
+    <div class="bar" style="justify-content:space-between"><div><h2>Mappa delle configurazioni</h2>
+      <p class="lead" style="margin:0">Ogni casella è un impianto (potenza × batteria). Il verde è il migliore per quello scenario d'uso; A e B sono i tuoi due scenari. Le caselle grigie superano il budget.</p></div></div>
+    <div class="bar" style="margin:10px 0">
+      <label class="sub">Scenario d'uso <select data-k="usoSel" id="usoSel"></select></label>
+      <div class="seg" id="segHeat"><button data-heat="gain" class="on">Guadagno</button><button data-heat="payback">Rientro</button><button data-heat="roi">Rendimento per €</button></div>
+      <label class="sub">Budget massimo (€ dopo incentivi, 0 = nessuno) <input type="number" step="500" min="0" data-k="budget" style="width:96px"></label>
+    </div>
+    <div class="tscroll"><table class="heat" id="heat"></table></div>
+    <div class="what" id="heatNote" style="margin-top:8px"></div>
+    <h3>Per ogni scenario d'uso, la scelta migliore</h3>
+    <div class="tscroll"><table id="tOtt"></table></div>
+    <div id="robusta" style="margin-top:8px"></div>
+  </section>
+
+  <div class="sec">3 · Quanto costa e quanto rende</div>
+  <section class="card" id="sCosto">
+    <h2>Investimento e ritorni dei due scenari</h2>
+    <div class="grid g2">
+      <div><h3 style="margin-top:6px">Da cosa è fatto l'investimento</h3><p class="what">Costo lordo per voce, prima degli incentivi. Il fotovoltaico ha una parte fissa (pratiche, inverter, installazione) e una per kWp.</p><div class="chartbox"><canvas id="cInvest"></canvas></div></div>
+      <div><h3 style="margin-top:6px">Quanto rende nel tempo</h3><p class="what">Beneficio annuo e guadagno netto cumulato dopo 5, 10 e 20 anni (investimento già sottratto).</p><div class="chartbox"><canvas id="cRende"></canvas></div></div>
+    </div>
+    <div class="tscroll" style="margin-top:8px"><table id="tInvest"></table></div>
+    <div class="grid g2" style="margin-top:12px">
+      <div><h3 style="margin-top:0">Soldi in tasca nel tempo</h3><p class="what">Parte da meno l'investimento: dove la linea supera lo zero c'è il rientro.</p><div class="chartbox"><canvas id="cCash"></canvas></div></div>
+      <div><h3 style="margin-top:0">Quanto spendi ogni anno per energia</h3><p class="what">Luce, gas e carburante: oggi e con i due scenari.</p><div class="chartbox"><canvas id="cSpesa"></canvas></div></div>
+    </div>
+    <h3>Come si arriva al risultato</h3>
+    <div class="bar" style="justify-content:flex-end"><div class="seg" id="segAB"><button data-ab="A" class="on">Scenario A</button><button data-ab="B">Scenario B</button></div></div>
+    <ol class="steps" id="catena" style="margin-top:6px"></ol>
+  </section>
+
+  <div class="sec">4 · Cosa pesa di più</div>
+  <section class="card" id="sPesa">
+    <h2>Gli input che spostano il risultato</h2>
+    <p class="lead">Per ogni ipotesi: di quanto cambia il guadagno se il valore passa dal minimo al massimo plausibile, per lo scenario A e per lo scenario B, nello stesso grafico. Le celle gialle sono valori modificati da te.</p>
+    <div class="chartbox" style="height:380px"><canvas id="cTornado"></canvas></div>
+    <div class="tscroll" style="margin-top:10px"><table id="tPesa"></table></div>
+  </section>
+
+  <div class="sec">5 · I consumi di oggi e di ieri</div>
+  <section class="card" id="sConsumi">
+    <h2>Quanto consumano gli appartamenti</h2>
+    <p class="lead">Dalle bollette il fornitore (luce dal 2020, gas dal 2020). Ci sono due notizie che contano e che i calcoli già usano: il Primo piano è disabitato dall'8 ottobre 2023 e il palazzo ha avuto lavori da ottobre 2025 ad aprile 2026.</p>
+    <div class="bar"><label class="sub"><input type="checkbox" data-k="escludi"> Escludi i periodi non rappresentativi (lavori, Primo piano vuoto)</label></div>
+    <div id="consNote" style="margin-top:6px"></div>
+    <h3>Condizionatori: com'erano le estati prima e dopo</h3>
+    <p class="what">Fino a qualche anno fa non c'erano condizionatori; negli ultimi due anni ne sono stati installati due al Secondo piano. Le estati prima non contengono il raffrescamento, quindi per i consumi di luce uso solo i mesi estivi (giugno-settembre) con i condizionatori. La differenza tra prima e dopo è una stima di quanto consumano.</p>
+    <div class="bar"><label class="sub">Estati con i condizionatori da <input type="month" data-k="climaDal"></label><label class="sub"><input type="checkbox" data-k="climaIgnora"> Non distinguere: usa tutte le estati</label></div>
+    <div class="grid g2" style="margin-top:8px"><div class="chartbox"><canvas id="cClima"></canvas></div><div class="tscroll"><table id="tClima"></table></div></div>
+    <div id="climaNote" style="margin-top:6px"></div>
+    <h3>Consumi usati nei calcoli</h3>
+    <div class="tscroll"><table id="tUsati"></table></div>
+    <h3>Anno per anno</h3>
+    <p class="what">Ogni barra è un anno di 12 mesi (da ottobre a settembre). Barre chiare = anno con mesi esclusi (lavori o Primo piano vuoto) o gas stimato dai mesi: da leggere con cautela.</p>
+    <div class="grid g2"><div><h4>Luce (kWh/anno)</h4><div class="chartbox"><canvas id="cAnnE"></canvas></div></div><div><h4>Gas (Smc/anno)</h4><div class="chartbox"><canvas id="cAnnG"></canvas></div></div></div>
+    <div class="tscroll" style="margin-top:8px"><table id="tAnni"></table></div>
+    <h3>Mese per mese</h3>
+    <div class="bar" style="justify-content:space-between"><p class="what" style="margin:0">Punti grigi = mesi esclusi dai calcoli.</p>
+      <div class="seg" id="segHist"><button data-m="kwh" class="on">kWh luce</button><button data-m="euro">€ luce</button><button data-m="eurkwh">€ per kWh</button><button data-m="gas">Smc gas</button></div></div>
+    <div class="chartbox" style="margin-top:6px"><canvas id="cHist"></canvas></div><div class="sub" id="histNote"></div>
+  </section>
+
+  <div class="sec">6 · I prezzi, nel tempo</div>
+  <section class="card" id="sPrezzi">
+    <h2>Quanto sono cambiati luce, gas e gasolio</h2>
+    <p class="lead">Luce e gas dalle bollette (con IVA, perché sono consumi di casa); gasolio dalle fatture della carta carburante, senza IVA perché lo detrai come costo aziendale. Serve a stabilire di quanto possono variare i prezzi nelle sensibilità.</p>
+    <div class="grid g3">
+      <div><h4>Luce, €/kWh al mese (Secondo piano)</h4><div class="chartbox" style="height:230px"><canvas id="cPL"></canvas></div></div>
+      <div><h4>Gas, €/Smc all'anno (Secondo piano)</h4><div class="chartbox" style="height:230px"><canvas id="cPG"></canvas></div></div>
+      <div><h4>Gasolio senza IVA, €/l al mese</h4><div class="chartbox" style="height:230px"><canvas id="cPC"></canvas></div></div>
+    </div>
+    <div class="tscroll" style="margin-top:10px"><table id="tPrezzi"></table></div>
+    <div id="prezziNote" style="margin-top:6px"></div>
+  </section>
+
+  <div class="sec">7 · Impianto fotovoltaico e batteria</div>
+  <section class="card" id="sImpianto">
+    <h2>Produzione, consumi e scambi con la rete</h2>
+    <p class="lead" id="impHint"></p>
+    <h3 style="margin-top:6px">Produzione mese per mese (stima realistica)</h3>
+    <div class="grid g2"><div class="chartbox"><canvas id="cProd"></canvas></div><div class="tscroll"><table id="tProd"></table></div></div>
+    <div id="prodNote" style="margin-top:8px"></div>
+    <h3>Quanta produzione usi davvero</h3>
+    <p class="what">Ogni mese la produzione si divide in: usata subito in casa, usata dalla batteria, ceduta alla rete. La linea sono i consumi totali.</p>
+    <div class="grid g2"><div><h4>Scenario A</h4><div class="chartbox"><canvas id="cUsoA"></canvas></div></div><div><h4>Scenario B</h4><div class="chartbox"><canvas id="cUsoB"></canvas></div></div></div>
+    <h3>Cosa compri dalla rete e cosa vendi</h3>
+    <p class="what">Acquisti mese per mese divisi per fascia oraria (F1 giorno feriale, F2 sera e sabato, F3 notte e festivi) e vendite. Il prezzo cambia poco tra le fasce (nelle bollette 0,01–0,03 €/kWh): il costo è calcolato con un prezzo unico.</p>
+    <div class="grid g2"><div><h4>Scenario A</h4><div class="chartbox"><canvas id="cReteA"></canvas></div></div><div><h4>Scenario B</h4><div class="chartbox"><canvas id="cReteB"></canvas></div></div></div>
+    <div class="tscroll" style="margin-top:8px"><table id="tRete"></table></div>
+    <h3>Che potenza scegliere</h3>
+    <p class="what">Guadagno e rientro al variare dei kWp, con la batteria di ciascuno scenario. Il rientro si allunga quando l'energia in più finisce quasi tutta in rete o scatta il costo dell'inverter trifase (oltre 6 kWp).</p>
+    <div class="grid g2"><div><h4>Guadagno a fine orizzonte</h4><div class="chartbox"><canvas id="cTagliaG"></canvas></div></div><div><h4>Anni per rientrare</h4><div class="chartbox"><canvas id="cTagliaR"></canvas></div></div></div>
+    <div id="saltoNote" style="margin-top:8px"></div>
+    <div class="tscroll" style="margin-top:8px"><table id="tTaglie"></table></div>
+    <h3>🔋 Batteria: con o senza?</h3>
+    <p class="what">Stesso impianto con e senza batteria. «Guadagno extra» = risparmi in più + detrazione − costo della batteria (parte fissa compresa) rispetto all'impianto senza batteria. Le batterie hanno in genere 10 anni di garanzia.</p>
+    <div class="grid g2"><div><h4>Guadagno extra al variare dei kWh</h4><div class="chartbox"><canvas id="cBat"></canvas></div></div><div><h4>Dove va la produzione, per batteria (scenario A)</h4><div class="chartbox"><canvas id="cUsoBat"></canvas></div></div></div>
+    <div class="tscroll" style="margin-top:8px"><table id="tBat"></table></div><div id="batNote" style="margin-top:6px"></div>
+    <label class="sub"><input type="checkbox" data-k="venditaSera"> Conta nel calcolo la vendita serale con la batteria (prezzo serale ipotizzato, vedi ipotesi)</label>
+    <div class="bar" style="justify-content:space-between;margin-top:14px"><h3 style="margin:0">Giornata tipo</h3><select id="meseGiorno"></select></div>
+    <div class="chartbox" style="height:240px"><canvas id="cGiorno"></canvas></div>
+  </section>
+
+  <div class="sec">8 · Auto elettrica, condizionatori e pompa di calore</div>
+  <section class="card" id="sFuturo">
+    <h2>Le tre scelte, ciascuna con la sua stima</h2>
+    <p class="lead">Ognuna ha un suo conto (cosa costa, cosa risparmia, in quanto si ripaga da sola). Quel conto entra poi negli scenari A e B quando la scegli nella barra in alto («Auto», «Clima inverno», «Calore»).</p>
+
+    <h3 style="margin-top:6px">8a · Auto elettrica al posto della Auto diesel</h3>
+    <div class="params" style="margin:6px 0">
+      <label>Litri della vecchia diesel: quale quota della carta <select data-k="quotaAuto"><option value="meta">metà (50/50)</option><option value="seconda">seconda auto (66% dal 2025)</option><option value="prima">prima auto (34% dal 2025)</option></select></label>
+      <label>Km all'anno <input type="number" step="500" min="0" data-ov="evKm"></label>
+      <label>Consumo diesel (l/100 km) <input type="number" step="0.5" min="2" data-ov="iceL"></label>
+      <label>Prezzo auto elettrica (€) <input type="number" step="1000" min="0" data-ov="evPrezzo"></label>
+    </div>
+    <div class="grid g2"><div class="tscroll"><table id="tAutoStima"></table></div><div id="autoNote"></div></div>
+    <h4>Con il fotovoltaico (scenario A) e con diverse scelte sul costo dell'auto</h4>
+    <div class="tscroll"><table id="tAuto"></table></div>
+    <h4>Carburante dalle fatture</h4>
+    <div id="carbBox"></div>
+
+    <h3>8b · Condizionatori: usarli anche d'inverno, quando il sole produce</h3>
+    <p class="what">Ci sono già due condizionatori (installati negli ultimi due anni). D'estate raffrescano di giorno, quando il fotovoltaico produce. D'inverno possono scaldare le stanze nelle ore di sole al posto di una parte dei termosifoni, senza nessun investimento: l'elettricità viene dal tetto invece che dalla rete. Il rendimento (COP) è più alto di quello di una pompa ad acqua a termosifoni, perché scaldano l'aria direttamente.</p>
+    <div class="params" style="margin:6px 0">
+      <label>Quota del riscaldamento fatta con i condizionatori (%) <input type="number" step="5" min="0" max="100" data-ov="climaQuota"></label>
+      <label>COP dei condizionatori in riscaldamento <input type="number" step="0.1" min="2" max="6" data-ov="climaCop"></label>
+      <label>Quota di accensione nelle ore di sole (%) <input type="number" step="5" min="0" max="100" data-ov="climaGiorno"></label>
+    </div>
+    <div class="tscroll"><table id="tClimaStima"></table></div>
+    <div class="tscroll" style="margin-top:10px"><table id="tClimaAB"></table></div>
+    <div id="climaFut" style="margin-top:6px"></div>
+
+    <h3>8c · Pompa di calore al posto della caldaia a gas</h3>
+    <p class="what">Il Secondo piano ha termosifoni classici ad acqua, non modificabili: la pompa deve scaldare l'acqua a temperatura alta e rende meno (COP stagionale ~3,0). Il Primo piano oggi è vuoto, usato solo per qualche festa: non lo considero finché non sarà ristrutturato con un impianto fatto apposta. Gli scenari che lo riguardano sono in una tabella a parte («dopo la ristrutturazione»). La caldaia è del 2021, con solare termico per l'acqua calda (info registrata, non ancora distinta nel modello).</p>
+    <div class="tscroll"><table id="tPompaStima"></table></div>
+    <div id="riscNote" style="margin-top:6px"></div>
+    <h4>Gas dei due appartamenti</h4>
+    <div class="tscroll"><table id="tGas" style="min-width:560px">
+      <thead><tr><th>Appartamento</th><th class="w">Origine del dato</th><th>Gas usato (Smc/anno)</th><th>Nel periodo scelto</th><th>Ultimo valido</th></tr></thead>
+      <tbody>
+       <tr><td>Primo piano (vuoto)</td><td class="w"><select data-k="gasPriMode"><option value="legna">Come il 2°, ridotto (legna)</option><option value="secondo">Uguale al 2°</option><option value="proprio">Suo consumo nel periodo</option><option value="spento">Spento</option><option value="custom">Personalizzato</option></select></td>
+        <td><span id="gPri"></span> <input type="number" step="10" min="0" data-k="gasPriCustom" data-show="gasPriMode=custom" style="width:84px"></td><td id="gPriP"></td><td id="gPriU"></td></tr>
+       <tr><td>Secondo piano</td><td class="w"><select data-k="gasSecMode"><option value="proprio">Suo consumo nel periodo</option><option value="custom">Personalizzato</option></select></td>
+        <td><span id="gSec"></span> <input type="number" step="10" min="0" data-k="gasSecCustom" data-show="gasSecMode=custom" style="width:84px"></td><td id="gSecP"></td><td id="gSecU"></td></tr>
+      </tbody></table></div>
+    <div class="params" style="margin-top:8px">
+      <label>COP della pompa al 2° piano (termosifoni) <input type="number" step="0.1" min="2" max="6" data-ov="hpCop"></label>
+      <label>COP della pompa al 1° piano dopo la ristrutturazione <input type="number" step="0.1" min="2" max="6" data-ov="hpCopPrimo"></label>
+      <label>Costo pompa unica (€) <input type="number" step="500" min="0" data-ov="hpCostUnica"></label>
+      <label>Costo di una pompa per piano (€) <input type="number" step="500" min="0" data-ov="hpCostPiano"></label>
+      <label>Quota del gas di riscaldamento sostituita (%) <input type="number" step="5" min="0" max="100" data-ov="hpShare"></label>
+      <label>Gas del 1° piano rispetto al 2° (%) <input type="number" step="5" min="10" max="100" data-ov="legnaPct"></label>
+    </div>
+
+    <h3>8d · Le combinazioni, con gli scenari A e B</h3>
+    <div class="tscroll"><table id="tCombo"></table></div>
+  </section>
+
+  <div class="sec">9 · Fonti, cose che mancano, dati</div>
+  <section class="card" id="sFonti">
+    <h2>Ogni numero, la sua fonte</h2>
+    <p class="lead">Tutti i parametri usati nei calcoli. Puoi modificare qualunque valore: resta evidenziato finché non lo ripristini. «Da confermare» indica un dato che solo tu puoi dare.</p>
+    <div class="legend" id="legendFonti"></div>
+    <div class="bar" style="margin:8px 0"><label class="sub">Mostra <select id="fGrp"></select></label><button id="resetOv">Ripristina tutti i valori</button><button id="resetAll">Ripristina anche le scelte in alto</button></div>
+    <div class="tscroll"><table id="tFonti"></table></div>
+    <h3>Cosa manca o è da confermare (registro)</h3>
+    <p class="what">Le informazioni mancanti sono registrate qui; quando un altro lavoro le chiude, si aggiornano i dati e questo elenco su tua richiesta.</p>
+    <div id="mancano"></div>
+    <details><summary>Dati delle bollette, curva di carico e import</summary>
+      <div class="tscroll" style="margin-top:8px"><table id="tDati"></table></div>
+      <div class="row-actions"><button id="addRow" class="pri">+ Aggiungi riga</button><button id="expCsv">Scarica CSV</button>
+        <label class="chip" style="cursor:pointer;padding:6px 12px">Carica CSV<input type="file" id="fileCsv" accept=".csv,.txt" hidden></label><button id="clearManual">Svuota righe manuali</button></div>
+      <h3>Curva di carico oraria (facoltativa)</h3>
+      <p class="lead">Se scarichi dal portale del distributore il CSV orario o quartorario, caricalo qui: il profilo orario diventa reale.</p>
+      <div id="curveInfo" class="sub"></div>
+      <div class="row-actions"><label class="chip" style="cursor:pointer;padding:6px 12px">Carica CSV curva di carico<input type="file" id="fileCurve" accept=".csv,.txt" hidden></label><button id="clearCurve">Rimuovi curva</button></div>
+    </details>
+  </section>
+  <div class="sub">Stime indicative: produzione PVGIS di lungo periodo, giornata tipo per mese, prezzi di oggi. Verifica incentivi e preventivi con un tecnico e un commercialista prima di decidere.</div>
+</main>
+
+<script src="lib/chart.umd.min.js"></script>
+<script src="lib/modello.js"></script>
+<script src="dati/consumi.js"></script>
+<script src="dati/pvgis.js" onerror="void 0"></script>
+<script src="dati/carburante.js" onerror="void 0"></script>
+<script src="dati/mancanti.js" onerror="void 0"></script>
+<script>
+"use strict";
+const M = FVModello;
+/* ============================== utilita ============================== */
+const $ = s => document.querySelector(s);
+const fmt = (n, d = 0) => (isFinite(n) ? n : 0).toLocaleString('it-IT', {minimumFractionDigits: d, maximumFractionDigits: d});
+const eur = n => (n<0?'−':'') + fmt(Math.abs(n)) + ' €';
+const sum = M.sum, avg = M.avg, MESI = M.MESI, GG = M.GG;
+const KEY = 'fv_demo';
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+const TIPI = {bolletta:['Misurato','Dato misurato nelle bollette o nelle fatture'], pvgis:['PVGIS','Dato PVGIS (Commissione Europea)'], web:['Fonte web','Fonte esterna datata: da verificare'],
+  stima:['Stima','Ipotesi di mercato o tecnica: sostituibile con un preventivo'], confermare:['Da confermare','Serve un dato tuo'], calcolo:['Calcolato','Risultato di un calcolo sui dati sopra'], scelta:['Tua scelta','Impostazione scelta nel menu']};
+const badge = (t, fonte) => `<span class="bd ${t}" title="${(TIPI[t]||[,''])[1]}${fonte?': '+fonte.replace(/"/g,'&quot;'):''}">${TIPI[t][0]}</span>`;
+const badges = (...ts) => ts.map(t=>badge(t)).join('');
+const monthLabel = m => MESI[+m.slice(5)-1] + ' ' + m.slice(2,4);
+const cfgName = c => !c ? 'nessuna entro il budget' : `${fmt(c.kwp,1)} kWp${c.batt?' + '+fmt(c.batt)+' kWh':' senza batteria'}`;
+const pb = x => isFinite(x) ? fmt(x,1)+' anni' : 'mai';
+
+/* ============================== stato ============================== */
+const DEF = {ap:'secondo', primoMode:'secondo', range:'norm', rFrom:'2022-10', rTo:'2023-09', profilo:'misto', efficSel:'0', efficCustom:15, tetto:'piatto_sud',
+  kwpA:'4.5', kwpACustom:5, battA:'0', battACustom:15, kwpB:'6', kwpBCustom:7, battB:'0', battBCustom:15,
+  heating:'no', car:'0', carCost:'pieno', price:'base', detr:'2026p', incPdc:'detr', quotaAuto:'meta',
+  climaInv:'no', climaDal:'2026-05', climaIgnora:false, gasPriMode:'legna', gasSecMode:'proprio', gasPriCustom:300, gasSecCustom:600, escludi:true, venditaSera:false, budget:0, usoSel:'corrente', ov:{}};
+let P = Object.assign({}, DEF, store.get(KEY+'_p', {}));
+P.ov = Object.assign({}, P.ov || {});
+const saveP = () => store.set(KEY+'_p', P);
+let manual = store.get(KEY+'_manual', []), CURVE = store.get(KEY+'_curve', null);
+let selAB = 'A', histMode = 'kwh', heatMetric = 'gain', fGrp = 'tutti', meseG = 6;
+
+/* ============================== scenari rapidi ============================== */
+/* Ogni scenario imposta le variabili d'uso (piani, periodo dei consumi, auto, calore, condizionatori) e, se la casella è attiva, le taglie A e B. */
+const PRESETS = [
+  {id:'ATT', nome:'Consumi attuali', set:{ap:'secondo', primoMode:'secondo', range:'ultimi12', car:'0', heating:'no', climaInv:'no'}, ab:[4.5,0,6,0],
+   desc:'Solo il Secondo piano, come si consuma adesso (ultimi 12 mesi validi, esclusi lavori), senza cambiare nulla. Confronto 4,5 kWp e 6 kWp senza batteria.'},
+  {id:'NORM', nome:'Consumi storici normalizzati', set:{ap:'secondo', primoMode:'secondo', range:'norm', car:'0', heating:'no', climaInv:'no'}, ab:[4.5,0,6,0],
+   desc:'Base di riferimento: Secondo piano con inverni 2023-24 e 2024-25 e l\'estate dal maggio 2026 (con i condizionatori). Niente auto elettrica, pompa o condizionatori d\'inverno.'},
+  {id:'EV', nome:'Normalizzati + auto elettrica', set:{ap:'secondo', primoMode:'secondo', range:'norm', car:'1', heating:'no', climaInv:'no'}, ab:[6,0,8,10],
+   desc:'Come la base, più una auto elettrica al posto della vecchia diesel (con wallbox). Più consumo di giorno: confronto 6 kWp senza batteria e 8 kWp con 10 kWh. Il rientro include i circa 30.000 € dell’auto (menu «Costo auto»).'},
+  {id:'CLI', nome:'Normalizzati + condizionatori d\'inverno', set:{ap:'secondo', primoMode:'secondo', range:'norm', car:'0', heating:'no', climaInv:'si'}, ab:[4.5,0,6,0],
+   desc:'Come la base, ma d\'inverno i due condizionatori scaldano nelle ore di sole al posto di parte dei termosifoni. Nessun investimento extra.'},
+  {id:'EV+CLI', nome:'Auto elettrica + condizionatori d\'inverno', set:{ap:'secondo', primoMode:'secondo', range:'norm', car:'1', heating:'no', climaInv:'si'}, ab:[6,0,8,10],
+   desc:'La combinazione più vicina nel tempo: auto elettrica e condizionatori d\'inverno, senza pompa di calore. Confronto 6 kWp e 8 kWp con 10 kWh. Il rientro include il prezzo dell’auto (menu «Costo auto»).'},
+  {id:'PDC', nome:'Normalizzati + pompa di calore', set:{ap:'secondo', primoMode:'secondo', range:'norm', car:'0', heating:'secondo', climaInv:'no'}, ab:[6,0,8,10],
+   desc:'Come la base, ma con la pompa di calore al Secondo piano (termosifoni, COP 3,0) al posto della caldaia. I condizionatori restano per l\'estate.'},
+  {id:'FUT', nome:'Dopo la ristrutturazione', set:{ap:'both', primoMode:'secondo', range:'norm', car:'1', heating:'unica', climaInv:'no'}, ab:[8,10,10,15],
+   desc:'Due appartamenti abitati, auto elettrica e una pompa di calore unica (impianto del Primo piano rifatto). Consumi del Primo stimati come quelli del Secondo. Il rientro include il costo di auto e pompa.'}
+];
+const presetAttivo = () => PRESETS.find(pr => Object.keys(pr.set).every(k => String(P[k]) === String(pr.set[k])));
+function applicaPreset(id){
+  const pr = PRESETS.find(x => x.id === id); if (!pr) return;
+  Object.assign(P, pr.set);
+  if ($('#presetAB').checked){ const [ka,ba,kb,bb] = pr.ab; Object.assign(P, {kwpA:String(ka), battA:String(ba), kwpB:String(kb), battB:String(bb)}); }
+  saveP(); renderAll();
+}
+function renderPresets(){
+  const act = presetAttivo();
+  $('#presetBtns').innerHTML = PRESETS.map(pr => `<button class="pbtn${act&&act.id===pr.id?' on':''}" data-preset="${pr.id}" title="${pr.nome}">${pr.id}</button>`).join('');
+  $('#presetDesc').innerHTML = act ? `<b>${act.id}</b> · ${act.nome}: ${act.desc}` : `<b>Personalizzato</b>: hai cambiato le impostazioni a mano. Scegli uno scenario rapido per tornare a un caso di riferimento.`;
+}
+
+/* ============================== modello ============================== */
+let D, PM, ctx, OT, OTc, SENS, R = {}, CFG = {};
+const num2 = (sel, cust) => sel === 'custom' ? (+cust || 0) : +sel;
+function parametriModello(){
+  const effic = P.efficSel === 'custom' ? +P.efficCustom || 0 : +P.efficSel;
+  return Object.assign({}, P, {climaDal: P.climaIgnora ? 'nessuno' : (P.climaDal || M.CLIMA_DAL), carburanteDiv: 2, escludi: P.escludi !== false, venditaSera: !!P.venditaSera, ov: Object.assign({effic}, P.ov, P.efficSel!=='0' ? {effic} : {})});
+}
+function costruisci(){
+  D = M.creaDati({consumi: (window.CONSUMI_DATA||[]).concat(manual.map(r=>Object.assign({src:'manuale'},r))), info: window.BOLLETTE_INFO, pvgis: window.PVGIS_DATA, carburante: window.CARBURANTE_DATA, curva: CURVE});
+  PM = parametriModello(); ctx = M.contesto(D, PM);
+  const nev = +P.car, nBase = Math.max(1,nev);
+  CFG.A = {kwp:Math.max(1,num2(P.kwpA,P.kwpACustom)), batt:num2(P.battA,P.battACustom), riscaldamento:P.heating, nev, nBase};
+  CFG.B = {kwp:Math.max(1,num2(P.kwpB,P.kwpBCustom)), batt:num2(P.battB,P.battBCustom), riscaldamento:P.heating, nev, nBase};
+  R.none = M.valuta(ctx, {kwp:0, batt:0, riscaldamento:'no', nev:0, nBase});
+  R.A = M.valuta(ctx, CFG.A); R.B = M.valuta(ctx, CFG.B);
+  const budget = +P.budget || 0;
+  OT = M.ottimizza(D, PM, {budget});
+  OTc = M.ottimizza(D, PM, {budget, scenari:[{id:'corrente', label:'Quello scelto in alto', ap:P.ap, nev, riscaldamento:P.heating}]});
+  SENS = M.sensibilitaAB(D, PM, CFG.A, CFG.B);
+}
+const extraText = () => { const t=[]; if(+P.car) t.push(`${P.car} ${+P.car>1?'auto elettriche':'auto elettrica'}`); if(P.heating!=='no') t.push(M.RISCALDAMENTO[P.heating].toLowerCase()); if(P.climaInv==='si') t.push('condizionatori in inverno'); return t.length?' + '+t.join(' + '):''; };
+
+/* ============================== grafici ============================== */
+const charts = {};
+const col = n => getComputedStyle(document.documentElement).getPropertyValue('--'+n).trim();
+function mk(id, cfg){
+  if (charts[id]) charts[id].destroy();
+  const ink = col('muted'), line = col('line');
+  cfg.options = Object.assign({responsive:true, maintainAspectRatio:false, animation:{duration:150}}, cfg.options||{});
+  cfg.options.plugins = Object.assign({legend:{display:false}}, cfg.options.plugins||{});
+  const sc = cfg.options.scales || {};
+  Object.values(sc).forEach(a=>{ a.ticks=Object.assign({color:ink},a.ticks||{}); a.grid=Object.assign({color:line},a.grid||{}); if(a.title) a.title.color=ink; });
+  cfg.options.scales = sc;
+  charts[id] = new Chart($('#'+id), cfg);
+}
+const LEG = () => ({display:true, labels:{color:col('muted'), boxWidth:12}});
+const uCol = u => u==='Primo piano' ? col('slate') : col('blue');
+const AC = () => col('green'), BC = () => col('violet');
+
+/* ============================== render ============================== */
+function renderAll(){
+  costruisci();
+  renderBarra(); renderPresets(); renderConsiglio(); renderConfig(); renderCosto(); renderPesa(); renderConsumi(); renderPrezzi(); renderImpianto(); renderFuturo(); renderFonti(); renderDati();
+  syncControlli();
+}
+function renderBarra(){
+  const a = CFG.A, b = CFG.B, ap = P.ap==='both'?'1° + 2° piano':P.ap==='secondo'?'solo 2° piano':'solo 1° piano';
+  $('#barSum').textContent = `${ap} · ${ctx.rng.label} · A ${fmt(a.kwp,1)} kWp${a.batt?'+'+a.batt+' kWh':''} · B ${fmt(b.kwp,1)} kWp${b.batt?'+'+b.batt+' kWh':''}${extraText()} · ${M.PRESET[P.price].n.split(':')[0].toLowerCase()}`;
+  $('#legendTop').innerHTML = Object.keys(TIPI).map(t=>`${badge(t)}<span>${TIPI[t][1]}</span>`).join('');
+  const ms = D.months; $('#srcInfo').textContent = ms.length ? `Bollette: ${ms[0]} → ${ms[ms.length-1]}` : 'Nessun dato';
+}
+
+/* ---- 1. suggerimento ---- */
+function renderConsiglio(){
+  const A=R.A, B=R.B, H=A.H, E=ctx.E, S=OT.scenari, S0=S[0], rob=OT.robusta, maxK=Math.max(...OT.kwps);
+  const best0=S0.migliore, fast0=S0.piuRapido, sugg=[];
+  if (!best0){ $('#sugg').innerHTML='<li>Nessuna configurazione rispetta il budget indicato.</li>'; }
+  else {
+    const stessaKwp=S0.celle.filter(c=>c.ok&&c.kwp===best0.kwp), senzaBatt=stessaKwp.find(c=>c.batt===0), conBatt=best0;
+    const limite = best0.kwp>=maxK-1e-9;
+    sugg.push(`<li class="k"><b>Oggi</b> (solo Secondo piano, ${fmt(S0.consumi)} kWh/anno di luce): rende di più <b>${cfgName(best0)}</b>, con un guadagno di <b>${eur(best0.gain)}</b> in ${H} anni e rientro in ${pb(best0.payback)}. Si ripaga prima <b>${cfgName(fast0)}</b> (${pb(fast0.payback)}, guadagno ${eur(fast0.gain)}).${limite?` La migliore è al limite del tetto (${fmt(maxK,1)} kWp): a frenare è lo spazio, non il conto economico.`:''}</li>`);
+    const gb=conBatt.gain-(senzaBatt?senzaBatt.gain:conBatt.gain);
+    sugg.push(`<li><b>Batteria</b>: ${conBatt.batt?`con questi consumi la batteria da ${conBatt.batt} kWh aggiunge ${eur(gb)} di guadagno rispetto allo stesso impianto senza.`:'con i consumi di oggi la batteria non si ripaga: costa più di quanto fa risparmiare.'} ${S[3].migliore&&S[3].migliore.batt>(conBatt.batt||0)?`Con auto e pompa di calore la batteria migliore sale a ${S[3].migliore.batt} kWh.`:''}</li>`);
+    const gm=s=>s.migliore?`${cfgName(s.migliore)} (${eur(s.migliore.gain)})`:'nessuna entro il budget';
+    sugg.push(`<li><b>Se cambia l'uso della casa</b>: con l'auto elettrica la scelta migliore è ${gm(S[1])}; con la pompa di calore ${gm(S[2])}; con auto e pompa ${gm(S[3])}; con due appartamenti abitati ${gm(S[4])}; con tutto ${gm(S[5])}.</li>`);
+    if (rob) sugg.push(`<li class="k"><b>La scelta più prudente</b> (vale per tutti e sei gli usi): <b>${cfgName(rob)}</b>. Nel caso peggiore ti fa perdere ${eur(rob.maxRimpianto)} rispetto alla scelta ideale per quell'uso; con un uso solo come oggi guadagna ${eur((S0.celle.find(c=>c.kwp===rob.kwp&&c.batt===rob.batt)||{gain:0}).gain)}.</li>`);
+    const cOn=M.contesto(D,Object.assign({},PM,{climaInv:'si'})), cOff=M.contesto(D,Object.assign({},PM,{climaInv:'no'})), hh=P.heating;
+    const ca=M.valuta(cOn,Object.assign({},CFG.A,{riscaldamento:hh})), ca0=M.valuta(cOff,Object.assign({},CFG.A,{riscaldamento:hh})), cb=M.valuta(cOn,Object.assign({},CFG.B,{riscaldamento:hh})), cb0=M.valuta(cOff,Object.assign({},CFG.B,{riscaldamento:hh}));
+    sugg.push(`<li><b>Condizionatori d'inverno</b>: usarli al posto di una parte dei termosifoni (${fmt(cOn.E.climaQuota)}% del riscaldamento, nelle ore di sole) ${ca.gain>=ca0.gain?`aggiunge <b>${eur(ca.gain-ca0.gain)}</b> di guadagno nello scenario A e ${eur(cb.gain-cb0.gain)} nel B`:`toglie ${eur(ca0.gain-ca.gain)} nello scenario A`}. ${hh!=='no'&&cOn.M.gasTot&&ca.climaGas===0?'Con la pompa di calore che copre tutto il riscaldamento non resta gas da sostituire.':'Non costa nulla perché i due condizionatori ci sono già; la quota è da confermare.'}</li>`);
+    const top=SENS.voci.slice(0,3).map(v=>v.label.toLowerCase()).join(', ');
+    sugg.push(`<li><b>Da cosa dipende</b>: soprattutto da ${top}. Sono gli input più incerti: cambiali nella tabella «Cosa pesa di più» e guarda come si sposta la scelta. Il prezzo di cessione e la detrazione decidono se conviene un impianto grande venduto alla rete oppure uno piccolo che si ripaga subito.</li>`);
+    $('#sugg').innerHTML = sugg.join('');
+  }
+  /* scenari A e B */
+  const dc=(x,l,cl)=>{ const d=x.invest.fvDettaglio, cfg=x.cfg, t=M.TETTI[P.tetto]; return `<div class="sc ${cl}"><h4>Scenario ${l}: ${cfgName(cfg)}</h4>
+    <div><b>${x.nPan}</b> pannelli da 430 Wp (~${fmt(x.nPan*M.PANEL_M2*(t.m2/4.6))} m²) · tetto: ${t.n.toLowerCase()}</div>
+    <div>Costo impianto <b>${fmt(x.invest.fv)} €</b> = parte fissa ${fmt(d.fisso)} + pannelli ${fmt(d.perKwp)}${d.trifase?` + trifase ${fmt(d.trifase)}`:''}${d.batteria?` + batteria ${fmt(d.batteria)}`:''}</div>
+    <div>Con: ${P.heating==='no'?'caldaia a gas':M.RISCALDAMENTO[P.heating].toLowerCase()}${P.climaInv==='si'?' + condizionatori in inverno':''} · ${+P.car?`${P.car} auto elettrica${+P.car>1?'/e':''}`:'Auto diesel'}${x.invest.auto?` (auto ${fmt(x.invest.auto)} €)`:''}</div></div>`; };
+  $('#recap').innerHTML = dc(A,'A','A') + dc(B,'B','B') + `<div class="sub" style="grid-column:1/-1">Impostazioni comuni: ${P.ap==='both'?'due appartamenti':P.ap==='secondo'?'solo Secondo piano':'solo Primo piano'} · consumi: ${ctx.rng.label} · profilo orario ${P.profilo} · prezzi: ${M.PRESET[P.price].n.split(':')[0].toLowerCase()} · condizionatori: estati con i condizionatori dal ${P.climaIgnora?'(non distinguo)':P.climaDal} · detrazione ${fmt(E.detrFV)}% · orizzonte ${H} anni.</div>`;
+  const rows=[
+    ['Consumo di luce a regime', [fmt(R.none.consTot)+' kWh', fmt(A.consTot)+' kWh', fmt(B.consTot)+' kWh'], badges('bolletta')],
+    ['Produzione fotovoltaica', ['–', fmt(A.sim.prod)+' kWh', fmt(B.sim.prod)+' kWh'], badges('pvgis','stima')],
+    ['… usata in casa', ['–', `${fmt(A.used)} kWh (${fmt(A.scRate*100)}%)`, `${fmt(B.used)} kWh (${fmt(B.scRate*100)}%)`], badges('calcolo')],
+    ['… ceduta alla rete', ['–', fmt(A.exp)+' kWh', fmt(B.exp)+' kWh'], badges('calcolo')],
+    ['Spesa energia all\'anno (luce, gas, carburante)', [fmt(R.none.scTot)+' €', fmt(A.scTot)+' €', fmt(B.scTot)+' €'], badges('bolletta','stima')],
+    ['<b>Beneficio all\'anno</b>', ['–', `<b>${eur(A.net)}</b>`, `<b>${eur(B.net)}</b>`], badges('calcolo')],
+    ['Investimento lordo', ['–', fmt(A.gross)+' €', fmt(B.gross)+' €'], badges('stima')],
+    ['Incentivi (detrazione, Conto Termico)', ['–', fmt(A.detrTot+A.ct)+' €', fmt(B.detrTot+B.ct)+' €'], badges('web')],
+    ['<b>Investimento netto</b>', ['–', `<b>${fmt(A.netInv)} €</b>`, `<b>${fmt(B.netInv)} €</b>`], badges('calcolo')],
+    ['<b>Rientro</b>', ['–', `<b>${pb(A.payback)}</b>`, `<b>${pb(B.payback)}</b>`], badges('calcolo')],
+    [`<b>Guadagno netto a ${H} anni</b>`, ['–', `<b>${eur(A.gain)}</b>`, `<b>${eur(B.gain)}</b>`], badges('calcolo')],
+    ['Guadagno per euro investito', ['–', fmt(A.gain/A.netInv*100)+'%', fmt(B.gain/B.netInv*100)+'%'], badges('calcolo')]
+  ];
+  $('#tScenari').innerHTML = `<thead><tr><th></th><th>Nessun intervento</th><th>Scenario A</th><th>Scenario B</th><th class="w">Fonte</th></tr></thead><tbody>`+rows.map(r=>`<tr><td>${r[0]}</td>${r[1].map(v=>`<td>${v}</td>`).join('')}<td class="w">${r[2]}</td></tr>`).join('')+'</tbody>';
+  const w=[], sc=R[selAB];
+  if (A.exp/A.sim.prod>0.5) w.push(['a',`Oltre metà della produzione dello scenario A (${fmt(A.exp)} kWh) finisce in rete a ${fmt(E.cess,2)} €/kWh: con i consumi di oggi l'impianto è più grande di quanto la casa usa. Il guadagno viene in buona parte dalla vendita e dalla detrazione.`]);
+  if (!sc.carburanteAuto.misurato && +P.car>0) w.push(['r','Il carburante risparmiato è una stima: mancano i dati delle fatture.']);
+  if (P.price!=='base') w.push(['v','Scenario prezzi: '+M.PRESET[P.price].n+'.']);
+  if (P.ap!=='secondo') w.push(['a','Stai considerando anche il Primo piano, che oggi è vuoto: i suoi consumi sono una stima «a regime».']);
+  w.push(['a',`Detrazione al ${fmt(E.detrFV)}%: ${M.DETRAZIONI[P.detr]?M.DETRAZIONI[P.detr].n:'valore personalizzato'}. Va verificata sul testo ufficiale e sul tuo caso.`]);
+  $('#avvisi').innerHTML = w.map(([c,t])=>`<div class="note ${c}">${t}</div>`).join('');
+}
+
+/* ---- 2. mappa delle configurazioni ---- */
+function renderConfig(){
+  const sel=$('#usoSel'); if(!sel.options.length || sel.dataset.n!==String(OT.scenari.length)){ sel.dataset.n=OT.scenari.length; sel.innerHTML = `<option value="corrente">Quello scelto in alto${extraText()}</option>`+OT.scenari.map(s=>`<option value="${s.sc.id}">${s.sc.label}</option>`).join(''); sel.value=P.usoSel; }
+  const sc = P.usoSel==='corrente' ? OTc.scenari[0] : (OT.scenari.find(s=>s.sc.id===P.usoSel)||OTc.scenari[0]);
+  const cel = sc.celle, kw=OT.kwps, bt=OT.batts, key=c=>c.kwp+'|'+c.batt, byK=new Map(cel.map(c=>[key(c),c]));
+  const val=c=>heatMetric==='gain'?c.gain:heatMetric==='roi'?(isFinite(c.roi)?c.roi:-1):-(isFinite(c.payback)?c.payback:99);
+  const ok=cel.filter(c=>c.ok), vs=ok.map(val), lo=Math.min(...vs), hi=Math.max(...vs), best=ok.slice().sort((a,b)=>val(b)-val(a))[0];
+  const txt=c=>heatMetric==='gain'?fmt(c.gain):heatMetric==='roi'?fmt(c.roi*100)+'%':(isFinite(c.payback)?fmt(c.payback,1)+' a':'mai');
+  $('#heat').innerHTML = `<thead><tr><th>kWp \\ batteria</th>${bt.map(b=>`<th>${b?b+' kWh':'nessuna'}</th>`).join('')}</tr></thead><tbody>`+
+    kw.map(k=>`<tr><td><b>${fmt(k,1)} kWp</b></td>${bt.map(b=>{ const c=byK.get(k+'|'+b); if(!c) return '<td>–</td>'; const a=c.ok?0.08+0.6*((val(c)-lo)/((hi-lo)||1)):0;
+      const tg=(k===CFG.A.kwp&&b===CFG.A.batt?'<span class="tag tagA">A</span>':'')+(k===CFG.B.kwp&&b===CFG.B.batt?'<span class="tag tagB">B</span>':'');
+      return `<td class="${c===best?'best':''}${c.ok?'':' off'}" style="background:${c.ok?`color-mix(in srgb, var(--green) ${Math.round(a*100)}%, transparent)`:'transparent'}">${tg}${txt(c)}</td>`; }).join('')}</tr>`).join('')+'</tbody>';
+  $('#heatNote').innerHTML = best ? `Scenario d'uso: <b>${sc.sc.label}</b> · luce ${fmt(sc.consumi)} kWh/anno. La casella migliore è <b>${cfgName(best)}</b> (${txt(best)}). ${heatMetric==='gain'?`Guadagno a ${R.A.H} anni, investimento già sottratto.`:heatMetric==='roi'?'Guadagno diviso investimento netto: dice dove ogni euro speso rende di più.':'Anni per recuperare l\'investimento (più basso = meglio).'}` : 'Nessuna configurazione entro il budget.';
+  const cell=(c)=>c?`${cfgName(c)}<div class="sub">${eur(c.gain)} · ${pb(c.payback)}</div>`:'–';
+  $('#tOtt').innerHTML = `<thead><tr><th>Scenario d'uso</th><th>Luce kWh</th><th class="w">Guadagno massimo</th><th class="w">Rientro più rapido</th><th class="w">Miglior rendimento per €</th><th>Tuo A</th><th>Tuo B</th></tr></thead><tbody>`+
+    OT.scenari.map(s=>{ const nb=Math.max(1,s.sc.nev), ra=M.valuta(s.ctx,{kwp:CFG.A.kwp,batt:CFG.A.batt,riscaldamento:s.sc.riscaldamento,nev:s.sc.nev,nBase:nb}), rb=M.valuta(s.ctx,{kwp:CFG.B.kwp,batt:CFG.B.batt,riscaldamento:s.sc.riscaldamento,nev:s.sc.nev,nBase:nb});
+      return `<tr><td class="w">${s.sc.label}</td><td>${fmt(s.consumi)}</td><td class="w">${cell(s.migliore)}</td><td class="w">${cell(s.piuRapido)}</td><td class="w">${s.migliorRoi?`${cfgName(s.migliorRoi)}<div class="sub">${fmt(s.migliorRoi.roi*100)}% · ${eur(s.migliorRoi.gain)}</div>`:'–'}</td><td>${eur(ra.gain)}<div class="sub">${pb(ra.payback)}</div></td><td>${eur(rb.gain)}<div class="sub">${pb(rb.payback)}</div></td></tr>`; }).join('')+'</tbody>';
+  const r=OT.robusta, m=OT.miglioreMedia, pg=OT.migliorePeggiore;
+  $('#robusta').innerHTML = (r&&m&&pg) ? `<div class="note"><b>Configurazione che non rimpiangi in nessun uso: ${cfgName(r)}</b> (costo netto ${fmt(r.netInv)} €). Nel peggiore dei sei scenari ti allontana al massimo di ${eur(r.maxRimpianto)} dal meglio. Guadagno medio sui sei scenari: ${eur(r.media)}.</div>
+    <div class="note v">Miglior guadagno medio: ${cfgName(m)} (${eur(m.media)}). Miglior caso peggiore: ${cfgName(pg)} (${eur(pg.peggiore)} nello scenario più sfavorevole).</div>` : '';
+}
+
+/* ---- 3. costo e ritorni ---- */
+function renderCosto(){
+  const A=R.A, B=R.B, H=A.H, comp=[['Impianto: parte fissa',x=>x.invest.fvDettaglio.fisso,col('blue')],['Pannelli (€/kWp)',x=>x.invest.fvDettaglio.perKwp,col('green')],['Maggior costo trifase',x=>x.invest.fvDettaglio.trifase,col('slate')],['Batteria',x=>x.invest.fvDettaglio.batteria,col('violet')],
+    ['Pompa di calore',x=>x.invest.pdc,col('red')],['Wallbox',x=>x.invest.wb,col('amber')],['Auto elettrica',x=>x.invest.auto,col('amber')+'aa'],['Potenza contatore',x=>x.invest.pot,col('muted')]].filter(([,f])=>f(A)>0||f(B)>0);
+  mk('cInvest',{type:'bar',data:{labels:['Scenario A','Scenario B'],datasets:comp.map(([l,f,c])=>({label:l,data:[f(A),f(B)],backgroundColor:c,stack:'i'}))},
+    options:{indexAxis:'y',plugins:{legend:LEG()},scales:{x:{stacked:true,title:{display:true,text:'€ (lordo)'},ticks:{callback:v=>fmt(v)}},y:{stacked:true}}}});
+  const idx=n=>Math.min(n,H);
+  mk('cRende',{type:'bar',data:{labels:['Beneficio in un anno',`Guadagno dopo 5 anni`,`dopo 10 anni`,`dopo ${H} anni`],datasets:[
+    {label:'Scenario A',data:[A.net,A.cash[idx(5)],A.cash[idx(10)],A.gain],backgroundColor:AC(),borderRadius:3},{label:'Scenario B',data:[B.net,B.cash[idx(5)],B.cash[idx(10)],B.gain],backgroundColor:BC(),borderRadius:3}]},
+    options:{plugins:{legend:LEG()},scales:{y:{title:{display:true,text:'€'},ticks:{callback:v=>fmt(v)}},x:{grid:{display:false}}}}});
+  const r=(l,f,fm=eur)=>`<tr><td>${l}</td><td>${fm(f(A))}</td><td>${fm(f(B))}</td></tr>`;
+  $('#tInvest').innerHTML = `<thead><tr><th></th><th>Scenario A</th><th>Scenario B</th></tr></thead><tbody>`+
+    r('Impianto fotovoltaico (parte fissa + kWp'+(A.invest.fvDettaglio.trifase||B.invest.fvDettaglio.trifase?' + trifase':'')+')',x=>x.invest.fvDettaglio.fisso+x.invest.fvDettaglio.perKwp+x.invest.fvDettaglio.trifase,v=>fmt(v)+' €')+
+    r('Batteria (parte fissa + kWh)',x=>x.invest.fvDettaglio.batteria,v=>fmt(v)+' €')+r('Pompa di calore, wallbox, auto, potenza',x=>x.invest.pdc+x.invest.wb+x.invest.auto+x.invest.pot,v=>fmt(v)+' €')+
+    r('<b>Investimento lordo</b>',x=>x.gross,v=>`<b>${fmt(v)} €</b>`)+r('− Detrazioni e Conto Termico',x=>x.detrTot+x.ct,v=>'−'+fmt(v)+' €')+r('<b>Investimento netto</b>',x=>x.netInv,v=>`<b>${fmt(v)} €</b>`)+
+    r('Beneficio all\'anno (anno 1)',x=>x.net)+r('Rientro',x=>x.payback,pb)+r('Guadagno netto a '+H+' anni',x=>x.gain)+'</tbody>';
+  mk('cCash',{type:'line',data:{labels:A.cash.map((_,i)=>i),datasets:[{label:'Scenario A',data:A.cash,borderColor:AC(),backgroundColor:AC(),tension:.2,pointRadius:0,borderWidth:2.5},{label:'Scenario B',data:B.cash,borderColor:BC(),backgroundColor:BC(),tension:.2,pointRadius:0,borderWidth:2.5}]},
+    options:{plugins:{legend:LEG()},scales:{x:{title:{display:true,text:'anni'},grid:{display:false}},y:{title:{display:true,text:'€ cumulati'},ticks:{callback:v=>fmt(v)}}}}});
+  const sets=[['Oggi',R.none],['Scenario A',A],['Scenario B',B]];
+  mk('cSpesa',{type:'bar',data:{labels:sets.map(s=>s[0]),datasets:[
+    ...[['Elettricità (netta)','luce','blue'],['Gas','gas','red'],['Carburante (senza IVA)','fuel','slate']].map(([l,k,c])=>({label:l,data:sets.map(s=>s[1].sc[k]),backgroundColor:col(c),stack:'s'})),
+    {label:'Ricarica pubblica, potenza (meno manutenzione e bollo)',data:sets.map(s=>s[1].sc.pub+s[1].sc.pot),backgroundColor:col('amber'),stack:'s'}]},
+    options:{plugins:{legend:LEG()},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,title:{display:true,text:'€ all\'anno'},ticks:{callback:v=>fmt(v)}}}}});
+  const x=R[selAB], c=x.catena, E=ctx.E, cfg=CFG[selAB];
+  const steps=[
+    ['Quanto consumi', fmt(x.consTot)+' kWh/anno', `Casa ${fmt(ctx.M.annual)} kWh${x.pdcKwh?` + pompa ${fmt(x.pdcKwh)}`:''}${x.climaKwh?` + condizionatori in inverno ${fmt(x.climaKwh)}`:''}${x.ev?` + auto ${fmt(x.ev)}`:''}. Riferimento: ${ctx.rng.label}${E.effic?`, efficientamento −${fmt(E.effic)}%`:''}.`, badges('bolletta','stima')],
+    ['Quanto produce l\'impianto', fmt(c.produzione)+' kWh/anno', `${fmt(cfg.kwp,1)} kWp × ${fmt(sum(M.resa(D,P.tetto))*(1-E.ombre/100))} kWh/kWp (PVGIS, meno ${fmt(E.ombre)}% di perdite extra).`, badges('pvgis','stima')],
+    ['Quanta ne usi in casa', `${fmt(c.usata)} kWh (${fmt(x.scRate*100)}%)`, `Simulazione ora per ora${cfg.batt?`; la batteria da ${fmt(cfg.batt)} kWh ne aggiunge ${fmt(x.sim.bat)}`:''}. Il resto, ${fmt(c.ceduta)} kWh, va in rete.`, badges('calcolo')],
+    ['Quanto vale ogni anno', eur(x.net), `${fmt(c.risparmioAcquisto)} € di luce non comprata (${fmt(E.luce,3)} €/kWh) + ${fmt(c.ricavoCessione)} € di cessione (${fmt(E.cess,2)} €/kWh)${x.ris.gasTot?` + gas evitato ${fmt(x.ris.gasTot*E.gas)} €`:''}${x.nev?` + gasolio evitato ${fmt(x.nev*x.carburanteAuto.euro)} €`:''}.`, badges('bolletta','web','stima')],
+    ['Quanto costa, al netto degli incentivi', fmt(x.netInv)+' €', `Lordo ${fmt(x.gross)} € − incentivi ${fmt(x.detrTot+x.ct)} € (detrazione ${fmt(E.detrFV)}% in 10 anni).`, badges('stima','web')],
+    [`Cosa resta dopo ${x.H} anni`, eur(x.gain), `Benefici annui con degrado (${fmt(E.degrado,1)}%/anno), rincaro (${fmt(E.rincaro,1)}%/anno) e inverter da ${fmt(E.inverter)} € all'anno 12, meno l'investimento. ${isFinite(x.payback)?`Si pareggia dopo ${fmt(x.payback,1)} anni.`:'Non si pareggia.'}`, badges('calcolo','stima')]
+  ];
+  $('#catena').innerHTML = steps.map((s,i)=>`<li><div><b>${i+1}. ${s[0]}</b>${s[3]}<div class="d">${s[2]}</div></div><div class="n">${s[1]}</div></li>`).join('');
+}
+
+/* ---- 4. sensibilità A e B ---- */
+function renderPesa(){
+  const voci=SENS.voci.filter(v=>(v.A.swing>1||v.B.swing>1)&&v.k!=='effic'), top=voci.slice(0,14), lab=v=>`${v.label} (${fmt(v.lo,v.lo<10?2:0)} ↔ ${fmt(v.hi,v.hi<10?2:0)} ${v.unit})`;
+  mk('cTornado',{type:'bar',data:{labels:top.map(lab),datasets:[
+    {label:'Scenario A: quanto cambia il guadagno',data:top.map(v=>v.A.swing),backgroundColor:AC(),borderRadius:2},{label:'Scenario B: quanto cambia il guadagno',data:top.map(v=>v.B.swing),backgroundColor:BC(),borderRadius:2}]},
+    options:{indexAxis:'y',plugins:{legend:LEG()},scales:{x:{title:{display:true,text:`variazione del guadagno a ${R.A.H} anni (€) tra valore minimo e massimo; base A ${fmt(SENS.baseA)} €, B ${fmt(SENS.baseB)} €`},ticks:{callback:v=>fmt(v)}},y:{ticks:{font:{size:11}}}}}});
+  $('#tPesa').innerHTML = `<thead><tr><th>Input</th><th>Valore usato</th><th>Fonte</th><th>Minimo ↔ massimo</th><th>A: al minimo</th><th>A: al massimo</th><th>B: al minimo</th><th>B: al massimo</th></tr></thead><tbody>`+
+    top.map(v=>{ const mod=P.ov[v.k]!==undefined; return `<tr><td class="w">${v.label}<div class="sub">${v.fonte}</div></td><td><input class="ov${mod?' mod':''}" type="number" step="${v.step}" data-ov="${v.k}" value="${+(+v.valore).toFixed(4)}"> ${v.unit}</td><td>${badge(v.tipo,v.fonte)}</td><td>${fmt(v.lo,v.lo<10?2:0)} ↔ ${fmt(v.hi,v.hi<10?2:0)}</td><td>${eur(v.A.lo)}</td><td>${eur(v.A.hi)}</td><td>${eur(v.B.lo)}</td><td>${eur(v.B.hi)}</td></tr>`; }).join('')+'</tbody>';
+}
+
+/* ---- 5. consumi ---- */
+function renderClima(){
+  const cd=PM.climaDal==='nessuno'?'9999-99':PM.climaDal, mesiE=[6,7,8,9], yrs=[...new Set(D.byUnit['Secondo piano'].map(r=>r.mese.slice(0,4)))].filter(y=>mesiE.some(m=>D.byUnit['Secondo piano'].find(r=>r.mese===`${y}-${String(m).padStart(2,'0')}`)));
+  const get=(y,m)=>{ const r=D.byUnit['Secondo piano'].find(r=>r.mese===`${y}-${String(m).padStart(2,'0')}`); return r?r.tot:null; };
+  const palette=['slate','slate','slate','slate','blue','green'];
+  mk('cClima',{type:'bar',data:{labels:mesiE.map(m=>MESI[m-1]),datasets:yrs.map((y,i)=>{ const post=`${y}-06`>=cd||PM.climaDal==='nessuno'; return {label:y+(post&&PM.climaDal!=='nessuno'?' (con condizionatori)':''),data:mesiE.map(m=>get(y,m)),backgroundColor:col(post&&PM.climaDal!=='nessuno'?(i%2?'green':'blue'):'slate')+(post&&PM.climaDal!=='nessuno'?'':String(['66','88','aa','cc','ee','ff'][i%6])),borderRadius:2}; })},
+    options:{plugins:{legend:LEG()},scales:{y:{beginAtZero:true,title:{display:true,text:'kWh al mese, Secondo piano'}},x:{grid:{display:false}}}}});
+  const cool=ctx.M.parts[1].cool;
+  $('#tClima').innerHTML=`<thead><tr><th>Mese</th><th>Prima (media)</th><th>Con condizionatori</th><th>Raffrescamento stimato</th></tr></thead><tbody>`+mesiE.map(m=>{ const rows=D.byUnit['Secondo piano'].filter(r=>+r.mese.slice(5)===m&&!M.motivoEsclusione(Object.assign({},PM,{climaDal:'nessuno'}),'Secondo piano',r.mese)), pre=rows.filter(r=>r.mese<cd).map(r=>r.tot), post=rows.filter(r=>r.mese>=cd).map(r=>r.tot);
+    return `<tr><td>${MESI[m-1]}</td><td>${pre.length?fmt(avg(pre))+' kWh <span class="sub">('+pre.length+' anni)</span>':'–'}</td><td>${post.length?fmt(avg(post))+' kWh <span class="sub">('+post.length+')</span>':'–'}</td><td>${fmt(cool[m-1])} kWh</td></tr>`; }).join('')+`<tr style="font-weight:650"><td>Estate</td><td></td><td></td><td>${fmt(sum(cool))} kWh</td></tr></tbody>`;
+  $('#climaNote').innerHTML=`<div class="note ${PM.climaDal==='nessuno'?'a':'v'}">${PM.climaDal==='nessuno'?'Stai usando <b>tutte</b> le estati, anche quelle prima dei condizionatori: i consumi di luce estivi sono sottostimati.':`Uso le estati dal <b>${PM.climaDal}</b> in poi (${ctx.M.parts[1].nRange} mesi validi del Secondo piano nel periodo). Il raffrescamento stimato è di circa <b>${fmt(sum(cool))} kWh all'anno</b>, concentrato nel pomeriggio e la sera.`} Il confronto tra anni diversi dipende anche dal meteo e da quante persone sono in casa: è un ordine di grandezza. Con più estati con i condizionatori la stima migliorerà. ${badges('bolletta','confermare')}</div>`;
+}
+function finestraLuce(u, fine){ let t=0,n=0,eu=0,ne=0,esc=0; for(let i=0;i<12;i++){ const m=M.monthShift(fine,-i), r=D.byUnit[u].find(r=>r.mese===m); if(r){t+=r.tot;n++; if(isFinite(r.euro)){eu+=r.euro;ne++}} const rm=M.motivoEsclusione(PM,u,m); if(rm&&!/condizionatori/.test(rm)) esc++; } return {v:n>=11?t/n*12:null, n, eur:ne>=10?eu/ne*12:null, est:ne<12, esc}; }
+function renderConsumi(){
+  const U=M.UNITA, mm=ctx.M, last=D.months[D.months.length-1]||'2026-09', pr=D.byUnit['Primo piano'], se=D.byUnit['Secondo piano'], note=[];
+  const lastFixed=(D.info&&D.info.luce_bollette||[]).filter(x=>x.unita==='Primo piano').slice(-6);
+  note.push([P.range==='norm'?'':'a', P.range==='norm'?`<b>Consumi storici normalizzati (base di riferimento):</b> inverno da ottobre ad aprile con gli inverni 2023-24 e 2024-25, estate da maggio a settembre con il 2026 (con i condizionatori). L'inverno 2025-26 non vale (cantiere), né le estati prima dei condizionatori. Gas: media dei 12 mesi a settembre 2024 e a settembre 2025. Risultato: ${fmt(ctx.M.annual)} kWh di luce e ${fmt(ctx.M.gasTot)} Smc di gas all'anno. ${badges('bolletta','confermare')}`:`<b>Periodo scelto:</b> ${ctx.rng.label}. Lo scenario <b>NORM</b> (consumi storici normalizzati: inverni 2023-24 e 2024-25 + estate 2026) è la base consigliata: lo trovi tra gli scenari rapidi in alto o nel menu «Periodo».`]);
+  note.push(['a', `<b>Il Primo piano è vuoto dall'8 ottobre 2023</b> (uso saltuario per feste, in attesa di ristrutturazione): consuma ${fmt(D.spentoM,1)} kWh al mese. Paga comunque circa ${fmt(sum(lastFixed.map(x=>x.euro)))} € all'anno di sola luce, quasi tutti costi fissi. Per questo non entra nei calcoli (si riattiva dal menu «Piani»). ${badges('bolletta')}`]);
+  note.push(['a', `<b>Lavori nel palazzo da ottobre 2025 ad aprile 2026</b>: l'elettricità serviva al cantiere, non a vivere, e il gas è crollato (da ${fmt(M.gasFinestra(D,'Secondo piano','2025-09').v||0)} Smc nei 12 mesi a settembre 2025 a ${fmt(M.gasUltimi12(D,'Secondo piano'))} negli ultimi 12). Quei mesi sono esclusi; i consumi dell'estate 2026 e da maggio 2026 sono validi. ${badges('bolletta','confermare')}`]);
+  const ext=y=>{ const r=se.filter(r=>r.mese>=`${y}-07`&&r.mese<=`${y}-08`); return r.length===2?sum(r.map(x=>x.tot)):null; };
+  if (ext(2026)&&ext(2025)) note.push(['v', `<b>Estate 2026 del Secondo piano:</b> luglio-agosto ${fmt(ext(2026))} kWh contro ${fmt(ext(2025))} nel 2025 (condizionatori): consumi di giorno, in buona parte sovrapposti al sole. ${badges('bolletta')}`]);
+  note.push(['v', `<b>Condizionatori:</b> due, installati negli ultimi due anni al Secondo piano (data, stanze e potenza da confermare). Le estati prima non valgono per la luce. Potrebbero servire anche d'inverno, nelle ore di sole, al posto dei termosifoni: vedi «Auto, condizionatori e pompa di calore». ${badges('confermare')}`]);
+  note.push(['r', `<b>Annate sospette.</b> Il gas del 2021 (oltre 1.500 Smc per piano) è molto sopra le altre annate: probabili conguagli. Non influisce sui calcoli (si usano le annate dal 2023). ${badges('bolletta','confermare')}`]);
+  $('#consNote').innerHTML = note.map(([c,t])=>`<div class="note ${c}">${t}</div>`).join('');
+  renderClima();
+  const em={secondo:'come il 2°', proprio:'suoi consumi nel periodo', spento:'spento'}, gm={legna:'ridotto (legna)',secondo:'uguale al 2°',proprio:'suo, nel periodo',spento:'spento',custom:'personalizzato'};
+  $('#tUsati').innerHTML = `<thead><tr><th>Appartamento</th><th class="w">Come lo considero</th><th>Luce (kWh/anno)</th><th>Gas (Smc/anno)</th><th>Mesi validi nel periodo</th><th>Mesi esclusi</th><th>Reale ultimi 12 mesi: luce</th><th>gas</th></tr></thead><tbody>`+
+    mm.parts.map(p=>`<tr><td>${p.unit}</td><td class="w">${p.on?`luce ${p.unit==='Primo piano'?em[p.mode]:ctx.rng.label} · gas ${gm[p.unit==='Primo piano'?P.gasPriMode:P.gasSecMode]}`:'escluso'}</td><td>${fmt(p.annual)}</td><td>${fmt(p.gas)}</td><td>${p.nRange}</td><td>${p.nEsclusi}</td><td>${fmt(p.real.kwh)}</td><td>${fmt(p.real.gas)}</td></tr>`).join('')+
+    `<tr style="font-weight:650"><td>Totale</td><td></td><td>${fmt(mm.annual)}</td><td>${fmt(mm.gasTot)}</td><td></td><td></td><td>${fmt(sum(mm.parts.map(p=>p.real.kwh)))}</td><td>${fmt(sum(mm.parts.map(p=>p.real.gas)))}</td></tr></tbody>`;
+  const endY=+last.slice(0,4)+(+last.slice(5)>=9?0:-1), firstY=+(D.months[0]||'2021-01').slice(0,4), ends=[]; for(let y=firstY;y<=endY;y++) ends.push(`${y}-09`);
+  const per=ends.map(e=>({e,label:`Ott ${String(+e.slice(0,4)-1).slice(2)} – Set ${e.slice(2,4)}`,el:U.map(u=>finestraLuce(u,e)),gs:U.map(u=>M.gasFinestra(D,u,e))})).filter(p=>p.el.some(x=>x.v!==null)||p.gs.some(x=>x.v!==null));
+  const barCol=(u,x,est)=>(x&&x.esc>0)||est ? uCol(u)+'77' : uCol(u);
+  mk('cAnnE',{type:'bar',data:{labels:per.map(p=>p.label),datasets:U.map((u,i)=>({label:u,data:per.map(p=>p.el[i].v),backgroundColor:per.map(p=>barCol(u,p.el[i],false)),borderRadius:2}))},
+    options:{plugins:{legend:LEG()},scales:{x:{grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'kWh/anno'},ticks:{callback:v=>fmt(v)}}}}});
+  const gv=per.flatMap(p=>p.gs.filter(g=>g.v!==null&&!g.est).map(g=>g.v)), gmax=gv.length?Math.ceil(Math.max(...gv)*1.25/100)*100:undefined;
+  mk('cAnnG',{type:'bar',data:{labels:per.map(p=>p.label),datasets:U.map((u,i)=>({label:u,data:per.map(p=>p.gs[i].v),backgroundColor:per.map(p=>barCol(u,p.el[i],p.gs[i].est)),borderRadius:2}))},
+    options:{plugins:{legend:LEG()},scales:{x:{grid:{display:false}},y:{beginAtZero:true,max:gmax,title:{display:true,text:'Smc/anno (le barre oltre il limite sono tagliate: vedi tabella)'},ticks:{callback:v=>fmt(v)}}}}});
+  $('#tAnni').innerHTML = `<thead><tr><th>Anno (ott–set)</th><th>Luce Primo</th><th>Luce Secondo</th><th>Luce totale</th><th>variazione</th><th>Spesa luce</th><th>Gas Primo</th><th>Gas Secondo</th><th>Gas totale</th><th class="w">Note</th></tr></thead><tbody>`+
+    per.map((p,i)=>{ const both=p.el[0].v!==null&&p.el[1].v!==null, tot=(p.el[0].v||0)+(p.el[1].v||0), pv=i?per[i-1]:null, pboth=pv&&pv.el[0].v!==null&&pv.el[1].v!==null, ptot=pv?(pv.el[0].v||0)+(pv.el[1].v||0):0,
+      sp=(p.el[0].eur!==null&&p.el[1].eur!==null)?(p.el[0].est||p.el[1].est?'~':'')+fmt(p.el[0].eur+p.el[1].eur)+' €':'–', g=x=>x.v===null?'–':fmt(x.v)+(x.est?'*':'');
+      const nt=[]; if(p.el[0].esc) nt.push('1° piano vuoto'); if(p.el[1].esc) nt.push('lavori');
+      return `<tr><td>${p.label}</td><td>${p.el[0].v===null?'–':fmt(p.el[0].v)}</td><td>${p.el[1].v===null?'–':fmt(p.el[1].v)}</td><td>${both?fmt(tot):'–'}</td><td>${both&&pboth&&ptot>0?(tot>=ptot?'+':'')+fmt((tot/ptot-1)*100)+'%':'–'}</td><td>${sp}</td><td>${g(p.gs[0])}</td><td>${g(p.gs[1])}</td><td>${(p.gs[0].v!==null&&p.gs[1].v!==null)?fmt(p.gs[0].v+p.gs[1].v):'–'}</td><td class="w sub">${nt.join(', ')}</td></tr>`; }).join('')+'</tbody><tfoot><tr><td colspan="10" class="w sub">* gas stimato dalla somma dei mesi (meno affidabile) · ~ spesa con 1–2 mesi senza importo</td></tr></tfoot>';
+  const gasM=u=>M.gasMensile(D,u), allM=histMode==='gas'?[...new Set(U.flatMap(u=>Object.keys(gasM(u))))].sort():D.months;
+  mk('cHist',{type:'line',data:{labels:allM.map(monthLabel),datasets:U.map(u=>{ const mp=new Map(unitRows(u).map(r=>[r.mese,r])), gm_=gasM(u), esc=m=>!!M.motivoEsclusione(PM,u,m);
+    return {label:u,data:allM.map(m=>{ const r=mp.get(m); if(histMode==='kwh') return r?r.tot:null; if(histMode==='euro') return r&&isFinite(r.euro)?r.euro:null; if(histMode==='eurkwh') return r&&isFinite(r.euro)&&r.tot>=15?r.euro/r.tot:null; return gm_[m]!==undefined?gm_[m]:null; }),
+      borderColor:uCol(u),backgroundColor:uCol(u),tension:.2,pointRadius:allM.map(m=>esc(m)?3:1.5),pointBackgroundColor:allM.map(m=>esc(m)?col('muted'):uCol(u)),spanGaps:false}; })},
+    options:{plugins:{legend:LEG()},scales:{y:{beginAtZero:true,title:{display:true,text:{kwh:'kWh/mese',euro:'€ per mese',eurkwh:'€ per kWh',gas:'Smc/mese'}[histMode]}},x:{grid:{display:false},ticks:{maxTicksLimit:14}}}}});
+  const nEu=D.rows.filter(r=>!isFinite(r.euro)).length;
+  $('#histNote').textContent = histMode==='eurkwh' ? '€ per kWh = spesa del mese (quota fissa compresa) / kWh: sale quando i consumi sono bassi perché pesa la quota fissa. Nel 2022 si vede il picco dei prezzi.' :
+    histMode==='euro' ? `L'importo di ogni bolletta bimestrale è diviso sui due mesi (quota fissa a metà, parte variabile in proporzione ai kWh).${nEu?` ${nEu} mesi senza importo.`:' Tutti i mesi hanno l\'importo.'}` : histMode==='gas' ? 'Il consumo di ogni bolletta è ripartito sui mesi del periodo. Prima del 2023 molte bollette sono stime o conguagli. Manca la fattura gas del Secondo piano di aprile-maggio 2024 (registrata tra le cose mancanti).' : '';
+}
+const unitRows = u => D.byUnit[u];
+function consMese(x,m){ const e=M.extraMese(m,{pdc:x.pdcKwh,ev:x.ev,clima:x.climaKwh||0}); return ctx.M.C[m]+e.pdc+e.ev+e.clima; }
+
+/* ---- 6. prezzi ---- */
+function renderPrezzi(){
+  const sp=M.storicoPrezzi(D), E=ctx.E, cd=D.carburante&&D.carburante.riepilogo, pl=M.prezzoMensileLuce(D,PM);
+  mk('cPL',{type:'line',data:{labels:pl.map(x=>monthLabel(x.mese)),datasets:[{label:'€/kWh',data:pl.map(x=>x.eurkwh),borderColor:col('blue'),backgroundColor:col('blue'),tension:.2,pointRadius:1.5}]},options:{scales:{y:{beginAtZero:false,ticks:{callback:v=>fmt(v,2)}},x:{grid:{display:false},ticks:{maxTicksLimit:7}}}}});
+  mk('cPG',{type:'bar',data:{labels:sp.gas.map(x=>'a set '+x.anno),datasets:[{label:'€/Smc',data:sp.gas.map(x=>x.eursmc),backgroundColor:col('red'),borderRadius:3}]},options:{scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v,2)}},x:{grid:{display:false}}}}});
+  if (cd){ const pm=cd.prezzi_mensili.filter(x=>x.litri>=15);
+    mk('cPC',{type:'line',data:{labels:pm.map(x=>monthLabel(x.mese)),datasets:[{label:'€/l senza IVA',data:pm.map(x=>x.prezzo_netto),borderColor:col('amber'),backgroundColor:col('amber'),tension:.2,pointRadius:1.2}]},options:{scales:{y:{beginAtZero:false,ticks:{callback:v=>fmt(v,2)}},x:{grid:{display:false},ticks:{maxTicksLimit:7}}}}});
+  } else mk('cPC',{type:'bar',data:{labels:['21/10/2026'],datasets:[{label:'€/l',data:[2.259/1.22],backgroundColor:col('amber')}]},options:{scales:{y:{beginAtZero:true}}}});
+  const sL=sp.statLuce, sG=sp.statGas, dn=cd&&cd.prezzo_netto_dev_std&&cd.prezzo_netto_media?cd.prezzo_netto_dev_std/cd.prezzo_netto_media:null;
+  $('#tPrezzi').innerHTML = `<thead><tr><th></th><th>Minimo</th><th>Massimo</th><th>Media</th><th>Variazione tipica</th><th class="w">Cosa ne faccio</th><th>Fonte</th></tr></thead><tbody>`+
+    `<tr><td>Luce, costo medio annuo (€/kWh, con IVA)</td><td>${sL?fmt(sL.min,3):'–'}</td><td>${sL?fmt(sL.max,3):'–'}</td><td>${sL?fmt(sL.media,3):'–'}</td><td>${sL?'±'+fmt(sL.cv*100)+'%':'–'}</td><td class="w">Prezzo evitato oggi: ${fmt(E.luce,3)} €/kWh (solo parte variabile). Sensibilità ±20%.</td><td>${badges('bolletta')}</td></tr>`+
+    `<tr><td>Gas, costo medio annuo (€/Smc, con IVA)</td><td>${sG?fmt(sG.min,2):'–'}</td><td>${sG?fmt(sG.max,2):'–'}</td><td>${sG?fmt(sG.media,2):'–'}</td><td>${sG?'±'+fmt(sG.cv*100)+'%':'–'}</td><td class="w">Prezzo evitato oggi: ${fmt(E.gas,2)} €/Smc. Sensibilità ±25%.</td><td>${badges('bolletta','stima')}</td></tr>`+
+    `<tr><td>Gasolio (€/l, senza IVA, mensile)</td><td>${cd&&cd.prezzo_netto_min?fmt(cd.prezzo_netto_min,3):'–'}</td><td>${cd&&cd.prezzo_netto_max?fmt(cd.prezzo_netto_max,3):'–'}</td><td>${cd&&cd.prezzo_netto_media?fmt(cd.prezzo_netto_media,3):'–'}</td><td>${dn?'±'+fmt(dn*100)+'%':'–'}</td><td class="w">Uso ${fmt(E.diesel,3)} €/l (media pesata degli ultimi 6 mesi). Da febbraio 2026 è salito di circa un terzo.</td><td>${cd?badges('bolletta'):badges('web','stima')}</td></tr></tbody>`;
+  $('#prezziNote').innerHTML = `<div class="note a">Per il gas il costo medio dipende anche da quanto consumi: la quota fissa (~16–18 €/mese) pesa di più se i consumi calano. Nelle simulazioni uso solo la parte variabile (${fmt(E.gas,2)} €/Smc).</div><div class="note v">I prezzi dell'energia si sono mossi fino a ${sL?fmt(sL.cv*100):'–'}% (luce) e ${sG?fmt(sG.cv*100):'–'}% (gas) da un anno all'altro${dn?`; il gasolio ${fmt(dn*100)}% intorno alla media`:''}: nella tabella «Cosa pesa di più» il prezzo della luce e quello ceduto alla rete sono tra gli input che spostano di più il guadagno.</div>`;
+}
+
+/* ---- 7. impianto ---- */
+function renderImpianto(){
+  const A=R.A, B=R.B, E=ctx.E, H=A.H, mm=ctx.M, tetto=M.TETTI[P.tetto], rk=P.tetto, yl=M.resa(D,rk), loss=1-E.ombre/100, irr=D.pvgis&&D.pvgis.irr?D.pvgis.irr[rk]:null, effY=yl.map(v=>v*loss), ymax=Math.max(...effY), ysum=sum(effY), irrSum=irr?sum(irr):NaN;
+  $('#impHint').textContent = `Tetto: ${tetto.n} (${fmt(sum(yl))} kWh/kWp PVGIS). Scenario A: ${cfgName(CFG.A)}; scenario B: ${cfgName(CFG.B)}.${(+P.car||P.heating!=='no')?' I calcoli includono auto elettrica e pompa di calore scelte in alto.':' Calcoli sui consumi di casa.'}`;
+  mk('cProd',{type:'bar',data:{labels:MESI,datasets:[{label:`A · ${fmt(CFG.A.kwp,1)} kWp`,data:A.sim.pm,backgroundColor:AC(),borderRadius:3},{label:`B · ${fmt(CFG.B.kwp,1)} kWp`,data:B.sim.pm,backgroundColor:BC(),borderRadius:3}]},
+    options:{plugins:{legend:LEG()},scales:{y:{beginAtZero:true,title:{display:true,text:'kWh/mese'}},x:{grid:{display:false}}}}});
+  $('#tProd').innerHTML = `<thead><tr><th>Mese</th>${irr?'<th>Irr. kWh/m²</th>':''}<th>kWh/kWp</th><th>% picco</th><th>A: kWh</th><th>B: kWh</th><th>A: kWh/giorno</th></tr></thead><tbody>`+
+    MESI.map((mn,m)=>`<tr><td>${mn}</td>${irr?`<td>${fmt(irr[m])}</td>`:''}<td>${fmt(effY[m])}</td><td>${fmt(effY[m]/ymax*100)}%</td><td>${fmt(A.sim.pm[m])}</td><td>${fmt(B.sim.pm[m])}</td><td>${fmt(A.sim.pm[m]/GG[m],1)}</td></tr>`).join('')+
+    `<tr style="font-weight:650"><td>Anno</td>${irr?`<td>${fmt(irrSum)}</td>`:''}<td>${fmt(ysum)}</td><td></td><td>${fmt(A.sim.prod)}</td><td>${fmt(B.sim.prod)}</td><td>${fmt(A.sim.prod/365,1)}</td></tr></tbody>`;
+  const sdy=D.pvgis&&D.pvgis.sd_y?D.pvgis.sd_y[rk]*loss:null;
+  $('#prodNote').innerHTML = [`<b>Resa annua:</b> ${fmt(ysum)} kWh per ogni kWp (PVGIS ${fmt(sum(yl))} meno ${fmt(E.ombre)}% di perdite extra). Per la Puglia i valori reali tipici sono ~1.250–1.450 kWh/kWp; a dicembre si produce il ${fmt(effY[11]/effY[6]*100)}% di luglio. ${badges('pvgis','stima')}`,
+    isFinite(irrSum)?`<b>Rendimento complessivo:</b> ${fmt(ysum/irrSum*100)}% dell'energia solare diventa elettricità (impianti ben tenuti: ~75–82%).`:'',
+    sdy?`<b>Anno fortunato o sfortunato:</b> A produce tra ${fmt(A.sim.prod-1.28*sdy*CFG.A.kwp)} e ${fmt(A.sim.prod+1.28*sdy*CFG.A.kwp)} kWh nell'80% degli anni; B tra ${fmt(B.sim.prod-1.28*sdy*CFG.B.kwp)} e ${fmt(B.sim.prod+1.28*sdy*CFG.B.kwp)}.`:''].filter(Boolean).map(t=>`<div class="note">${t}</div>`).join('');
+  [['A',A,CFG.A],['B',B,CFG.B]].forEach(([l,x,cfg])=>{
+    const consM=MESI.map((_,m)=>consMese(x,m));
+    mk('cUso'+l,{type:'bar',data:{labels:MESI,datasets:[{label:'Usata subito',data:x.sim.scM,backgroundColor:col('green'),stack:'u',borderRadius:2},...(cfg.batt>0?[{label:'Usata grazie alla batteria',data:x.sim.batM,backgroundColor:col('violet'),stack:'u'}]:[]),
+      {label:'Ceduta alla rete',data:x.sim.expM,backgroundColor:col('amber'),stack:'u'},{type:'line',label:'Consumi totali',data:consM,borderColor:col('blue'),backgroundColor:col('blue'),tension:.3,pointRadius:2,stack:'c'}]},
+      options:{plugins:{legend:LEG()},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,title:{display:true,text:'kWh/mese'}}}}});
+    mk('cRete'+l,{type:'bar',data:{labels:MESI,datasets:[{label:'Acquisti F1',data:x.sim.impF[0],backgroundColor:col('red'),stack:'r'},{label:'Acquisti F2',data:x.sim.impF[1],backgroundColor:col('amber'),stack:'r'},{label:'Acquisti F3',data:x.sim.impF[2],backgroundColor:col('slate'),stack:'r'},
+      {type:'line',label:'Venduto alla rete',data:x.sim.expM,borderColor:col('green'),backgroundColor:col('green'),tension:.3,pointRadius:2,stack:'v'}]},
+      options:{plugins:{legend:LEG()},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,title:{display:true,text:'kWh/mese'}}}}});
+  });
+  const cons0=MESI.map((_,m)=>mm.C[m]);
+  $('#tRete').innerHTML = `<thead><tr><th>Mese</th><th>Senza impianto: compri (kWh)</th><th>€</th><th>A: compri (kWh)</th><th>€</th><th>A: vendi (kWh)</th><th>€</th><th>B: compri (kWh)</th><th>€</th><th>B: vendi (kWh)</th><th>€</th></tr></thead><tbody>`+
+    MESI.map((mn,m)=>`<tr><td>${mn}</td><td>${fmt(consMese(A,m))}</td><td>${fmt(consMese(A,m)*E.luce)}</td><td>${fmt(A.sim.impM[m])}</td><td>${fmt(A.sim.impM[m]*E.luce)}</td><td>${fmt(A.sim.expM[m])}</td><td>${fmt(A.sim.expM[m]*E.cess)}</td><td>${fmt(B.sim.impM[m])}</td><td>${fmt(B.sim.impM[m]*E.luce)}</td><td>${fmt(B.sim.expM[m])}</td><td>${fmt(B.sim.expM[m]*E.cess)}</td></tr>`).join('')+
+    `<tr style="font-weight:650"><td>Anno</td><td>${fmt(sum(MESI.map((_,m)=>consMese(A,m))))}</td><td>${fmt(sum(MESI.map((_,m)=>consMese(A,m)))*E.luce)} €</td><td>${fmt(A.imp)}</td><td>${fmt(A.acquistoEuro)} €</td><td>${fmt(A.exp)}</td><td>${fmt(A.venditaEuro)} €</td><td>${fmt(B.imp)}</td><td>${fmt(B.acquistoEuro)} €</td><td>${fmt(B.exp)}</td><td>${fmt(B.venditaEuro)} €</td></tr></tbody>`;
+  /* taglia: guadagno e rientro al variare dei kWp, per A e B */
+  const kws=Array.from({length:21},(_,i)=>2+i*0.5), sA=kws.map(k=>M.valuta(ctx,Object.assign({},CFG.A,{kwp:k}))), sB=kws.map(k=>M.valuta(ctx,Object.assign({},CFG.B,{kwp:k})));
+  const ln=(id,f,yt,fm,tt)=>mk(id,{type:'line',data:{labels:kws,datasets:[{label:'A ('+(CFG.A.batt?CFG.A.batt+' kWh':'no batt.')+')',data:sA.map(f),borderColor:AC(),backgroundColor:AC(),tension:.2,pointRadius:kws.map(k=>k===CFG.A.kwp?5:0),borderWidth:2.5},{label:'B ('+(CFG.B.batt?CFG.B.batt+' kWh':'no batt.')+')',data:sB.map(f),borderColor:BC(),backgroundColor:BC(),tension:.2,pointRadius:kws.map(k=>k===CFG.B.kwp?5:0),borderWidth:2.5}]},
+    options:{plugins:{legend:LEG(),tooltip:{callbacks:{title:it=>fmt(+it[0].label,1)+' kWp',label:tt||(c=>`${c.dataset.label}: ${fmt(c.parsed.y)} €`)}}},scales:{x:{title:{display:true,text:'potenza (kWp)'},grid:{display:false},ticks:{callback:function(v){return fmt(+this.getLabelForValue(v),1);}}},y:{title:{display:true,text:yt},ticks:{callback:fm}}}}});
+  ln('cTagliaG',s=>s.gain,`guadagno a ${H} anni (€)`,v=>fmt(v)); ln('cTagliaR',s=>isFinite(s.payback)?s.payback:null,'anni per rientrare',v=>fmt(v,1),(c)=>`${c.dataset.label}: ${fmt(c.parsed.y,2)} anni`);
+  { const jumps=[]; for(let i=1;i<kws.length;i++){ const d=(sA[i].payback-sA[i-1].payback); if(isFinite(d)&&d>0.25) jumps.push([kws[i-1],kws[i],sA[i-1].payback,sA[i].payback]); }
+    $('#saltoNote').innerHTML = jumps.length ? jumps.map(j=>`<div class="note a"><b>Perché il rientro salta da ${fmt(j[2],2)} a ${fmt(j[3],2)} anni passando da ${fmt(j[0],1)} a ${fmt(j[1],1)} kWp (scenario A)?</b> ${j[0]<=6&&j[1]>6?`Oltre 6 kWp il modello aggiunge ${fmt(E.trifase)} € (inverter trifase e pratiche): costo che arriva tutto insieme, senza produrre un solo kWh in più. Prima il rientro è quasi piatto (${fmt(sA[0].payback,2)}–${fmt(sA[kws.indexOf(6)].payback,2)} anni) perché ogni kWp in più costa e rende in proporzione. Il guadagno finale cresce molto meno proprio a quel passaggio. Il valore è modificabile in «Fonti e ipotesi» (Maggior costo oltre 6 kWp): con un preventivo che non lo prevede il salto sparisce.`:'È un effetto di costi che arrivano a gradini (inverter, trifase) o di energia che inizia a finire in rete.'} ${badges('calcolo','stima')}</div>`).join('') : `<div class="note">Il rientro cambia in modo graduale al variare della potenza, senza salti. ${badges('calcolo')}</div>`; }
+  const sizes=[...new Set([3,4.5,6,8,10,CFG.A.kwp,CFG.B.kwp])].sort((a,b)=>a-b), ev=sizes.map(k=>[M.valuta(ctx,Object.assign({},CFG.A,{kwp:k})),M.valuta(ctx,Object.assign({},CFG.B,{kwp:k}))]);
+  $('#tTaglie').innerHTML = `<thead><tr><th></th>${sizes.map(k=>`<th class="${k===CFG.A.kwp||k===CFG.B.kwp?'cur':''}">${fmt(k,1)} kWp</th>`).join('')}</tr></thead><tbody>`+
+    ['A','B'].map((l,j)=>`<tr><td colspan="${sizes.length+1}" class="sub"><b>Con la batteria dello scenario ${l}</b></td></tr>`+[['Costo netto',s=>fmt(s.netInv)+' €'],['Produzione usata in casa',s=>fmt(s.scRate*100)+'%'],['Beneficio/anno',s=>eur(s.net)],['Rientro',s=>isFinite(s.payback)?fmt(s.payback,1)+' a':'mai'],['Guadagno '+H+' anni',s=>eur(s.gain)]]
+      .map(([n,f])=>`<tr><td>${n}</td>${ev.map(e=>`<td>${f(e[j])}</td>`).join('')}</tr>`).join('')).join('')+'</tbody>';
+  /* batteria */
+  const caps=Array.from({length:31},(_,i)=>i), bwA=caps.map(c=>M.valuta(ctx,Object.assign({},CFG.A,{batt:c}))), bwB=caps.map(c=>M.valuta(ctx,Object.assign({},CFG.B,{batt:c}))), dA=bwA.map(x=>x.gain-bwA[0].gain), dB=bwB.map(x=>x.gain-bwB[0].gain);
+  mk('cBat',{type:'line',data:{labels:caps,datasets:[{label:`A · ${fmt(CFG.A.kwp,1)} kWp`,data:dA,borderColor:AC(),backgroundColor:AC(),tension:.25,borderWidth:2.5,pointRadius:caps.map(c=>c===Math.round(CFG.A.batt)?5:0)},{label:`B · ${fmt(CFG.B.kwp,1)} kWp`,data:dB,borderColor:BC(),backgroundColor:BC(),tension:.25,borderWidth:2.5,pointRadius:caps.map(c=>c===Math.round(CFG.B.batt)?5:0)},{label:'Pareggio',data:caps.map(()=>0),borderColor:col('muted'),borderDash:[4,4],pointRadius:0,borderWidth:1}]},
+    options:{plugins:{legend:LEG()},scales:{x:{title:{display:true,text:'capacità batteria (kWh)'},grid:{display:false}},y:{ticks:{callback:v=>fmt(v)},title:{display:true,text:'€ rispetto a nessuna batteria'}}}}});
+  const opts=[...new Set([0,5,10,15,20,Math.round(CFG.A.batt),Math.round(CFG.B.batt)])].sort((a,b)=>a-b), bo=opts.map(c=>M.valuta(ctx,Object.assign({},CFG.A,{batt:c}))), bb=opts.map(c=>M.valuta(ctx,Object.assign({},CFG.B,{batt:c})));
+  mk('cUsoBat',{type:'bar',data:{labels:opts.map(c=>c?c+' kWh':'nessuna'),datasets:[{label:'Usata subito',data:bo.map(s=>s.sim.sc),backgroundColor:col('green'),stack:'b'},{label:'Da batteria',data:bo.map(s=>s.sim.bat),backgroundColor:col('violet'),stack:'b'},{label:'Ceduta',data:bo.map(s=>s.sim.exp),backgroundColor:col('amber'),stack:'b'},{label:'Perdite batteria',data:bo.map(s=>s.sim.loss),backgroundColor:col('slate'),stack:'b'}]},
+    options:{indexAxis:'y',plugins:{legend:LEG()},scales:{x:{stacked:true,title:{display:true,text:'kWh/anno'},ticks:{callback:v=>fmt(v)}},y:{stacked:true}}}});
+  $('#tBat').innerHTML = `<thead><tr><th>Batteria</th><th>Costo netto in più</th><th>Energia in più usata</th><th>Cicli/anno</th><th>A: risparmio extra/anno</th><th>A: si ripaga in</th><th>A: guadagno extra</th><th>B: risparmio extra/anno</th><th>B: si ripaga in</th><th>B: guadagno extra</th><th>Vendita serale (max/anno)</th></tr></thead><tbody>`+
+    opts.map((c,i)=>{ if(!c) return `<tr><td>Nessuna (riferimento)</td>${'<td>–</td>'.repeat(10)}</tr>`; const a=bo[i], b=bb[i];
+      return `<tr><td>${c} kWh</td><td>${fmt(a.netInv-bo[0].netInv)} €</td><td>${fmt(a.sim.bat)} kWh</td><td>${fmt(a.sim.cicli)}</td><td>${eur(a.net-bo[0].net)}</td><td>${pb(M.annoSorpasso(bo[0],a))}</td><td>${eur(a.gain-bo[0].gain)}</td><td>${eur(b.net-bb[0].net)}</td><td>${pb(M.annoSorpasso(bb[0],b))}</td><td>${eur(b.gain-bb[0].gain)}</td><td>${fmt(a.sim.arbKwh)} kWh · ${fmt(a.sim.arbGain)} €</td></tr>`; }).join('')+'</tbody>';
+  const bestA=dA.indexOf(Math.max(...dA)), bestB=dB.indexOf(Math.max(...dB));
+  $('#batNote').innerHTML = `<div class="note">${bestA===0?'<b>Con i consumi scelti la batteria non conviene per A</b>':`Per A la capacità che rende di più è <b>${bestA} kWh</b> (${eur(dA[bestA])} rispetto a nessuna batteria)`}; ${bestB===0?'<b>per B non conviene</b>':`per B <b>${bestB} kWh</b> (${eur(dB[bestB])})`}. Oltre quella taglia costa più di quanto fa risparmiare. Se «si ripaga in» supera i 10–15 anni di vita, non conviene. ${badges('calcolo','stima')}</div>
+    <div class="note v">Vendere la sera con una batteria grande: l'energia che una batteria più capiente potrebbe spostare dal giorno alla sera rende solo ${fmt(0.9*E.cessSera-E.cess,3)} € in più per kWh (prezzo serale ipotizzato ${fmt(E.cessSera,2)} €/kWh contro ${fmt(E.cess,2)} di giorno, meno il 10% di perdite): le cifre nell'ultima colonna sono pochi euro l'anno. Non c'è modo di dimostrare il contrario senza i prezzi orari reali. ${badges('stima','confermare')}</div>`;
+  const dd=$('#meseGiorno'); if(!dd.options.length){ dd.innerHTML=MESI.map((m,i)=>`<option value="${i}" ${i===meseG?'selected':''}>${m}</option>`).join(''); dd.onchange=e=>{meseG=+e.target.value; renderAll();}; }
+  const mk2=(x,cfg)=>{ const dP=x.sim.pm[meseG]/GG[meseG], sh=M.formaSole(D,P.tetto,meseG); return sh.map(v=>dP*v); };
+  const ld=M.caricoOrario(ctx,mm.C,meseG,{pdc:A.pdcKwh,ev:A.ev,clima:A.climaKwh||0});
+  mk('cGiorno',{type:'line',data:{labels:Array.from({length:24},(_,h)=>h+':00'),datasets:[{label:'Consumi',data:ld,borderColor:col('blue'),backgroundColor:col('blue')+'33',fill:true,tension:.3,pointRadius:0,borderWidth:2.5},{label:'Produzione A',data:mk2(A),borderColor:AC(),backgroundColor:AC(),tension:.3,pointRadius:0,borderWidth:2},{label:'Produzione B',data:mk2(B),borderColor:BC(),backgroundColor:BC(),tension:.3,pointRadius:0,borderWidth:2}]},
+    options:{plugins:{legend:LEG()},scales:{y:{beginAtZero:true,title:{display:true,text:'kWh/ora'}},x:{grid:{display:false}}}}});
+}
+
+/* ---- 8. auto e pompa ---- */
+function renderFuturo(){
+  const E=ctx.E, mm=ctx.M, H=R.A.H, cfg=CFG.A, nev=+P.car, nE=Math.max(1,nev), f=M.carburante(D,PM), cd=D.carburante&&D.carburante.riepilogo;
+  /* 8a auto */
+  const sa=M.stimaAuto(ctx,nE), row=(l,v,c='')=>`<tr class="${c}"><td>${l}</td><td>${v}</td></tr>`;
+  $('#tAutoStima').innerHTML = `<thead><tr><th>${nE} ${nE>1?'auto elettriche':'auto elettrica'} al posto della vecchia diesel (senza fotovoltaico)</th><th>€</th></tr></thead><tbody>`+
+    row('Gasolio non più comprato ('+fmt(sa.litri)+' l, senza IVA)', eur(sa.carburanteEvitato))+row('Manutenzione risparmiata', eur(sa.manut))+row('Bollo risparmiato', eur(sa.bollo))+
+    row('<b>Risparmi all\'anno</b>', `<b>${eur(sa.risparmiAnno)}</b>`)+row('Elettricità per ricaricare a casa ('+fmt(sa.kwhCasa)+' kWh)', '−'+fmt(sa.elettricita)+' €')+row('Ricarica pubblica', '−'+fmt(sa.pubblica)+' €')+row('Maggior potenza del contatore', '−'+fmt(sa.potAnno)+' €')+
+    row('<b>Beneficio netto all\'anno</b>', `<b>${eur(sa.nettoAnno)}</b>`,'cur')+row(P.carCost==='pieno'?`Auto (prezzo ${fmt(E.evPrezzo)} € meno realizzo vecchia diesel ${fmt(sa.realizzo)} €)`:P.carCost==='extra'?'Auto (solo sovrapprezzo)':'Auto (escluso dal calcolo)', fmt(sa.costoAuto-sa.realizzo)+' €')+row('Wallbox', fmt(sa.wallbox)+' €')+row('Adeguamento potenza contatore (una tantum)', fmt(sa.potUnaTantum)+' €')+
+    row('Detrazione sulla wallbox', '−'+fmt(sa.incentivoWb)+' €')+row('<b>Investimento netto</b>', `<b>${fmt(sa.investimentoNetto)} €</b>`)+row('Si ripaga da sola in (calcolo semplice)', pb(sa.rientroSemplice))+'</tbody>';
+  $('#autoNote').innerHTML = `<div class="note">Con il prezzo pieno (circa 30.000 €) l'auto da sola non si ripaga nell'orizzonte: l'investimento è l'auto, non l'energia. Guarda la riga «solo sovrapprezzo» (quanto aggiunge l'elettrico rispetto a comprare comunque un'auto nuova) e la riga «auto già comprata» (solo wallbox). ${badges('stima','confermare')}</div>
+    <div class="note a">Il gasolio è senza IVA perché è un costo aziendale detratto; la ricarica a casa con la luce di casa (IVA compresa). ${badges('web')}</div>`;
+  const mk_=(carCost)=>M.contesto(D,Object.assign({},PM,{carCost}));
+  const autoRows=[['Resta la Auto diesel',0,'pieno'],['1 elettrica · auto già comprata (solo wallbox)',1,'nessuno'],['1 elettrica · solo sovrapprezzo',1,'extra'],['1 elettrica · prezzo pieno',1,'pieno'],['2 elettriche · prezzo pieno',2,'pieno']];
+  const base2=M.valuta(mk_('pieno'),Object.assign({},cfg,{nev:0,nBase:2}));
+  $('#tAuto').innerHTML = `<thead><tr><th class="w">Scelta</th><th>Costo auto</th><th>Wallbox</th><th>Gasolio evitato</th><th>Altri effetti annui</th><th>Beneficio/anno</th><th>Si ripaga in</th><th>Guadagno extra ${H} anni</th></tr></thead><tbody>`+
+    autoRows.map(([l,n,m_])=>{ const c2=mk_(m_), r=M.valuta(c2,Object.assign({},cfg,{nev:n,nBase:2})), cp=n?M.annoSorpasso(base2,r):NaN;
+      return `<tr class="${n===nev&&(n===0||m_===P.carCost)?'cur':''}"><td class="w">${l}</td><td>${n?fmt(r.invest.auto)+' €':'–'}</td><td>${n?fmt(r.invest.wb)+' €':'–'}</td><td>${n?fmt(n*r.carburanteAuto.euro)+' €':'–'}</td><td>${n?eur(-(r.sc.pub+r.sc.pot)):'–'}</td><td>${n?eur(r.net-base2.net):'–'}</td><td>${n?pb(cp):'–'}</td><td>${n?eur(r.gain-base2.gain):'–'}</td></tr>`; }).join('')+'</tbody>';
+  const car=ctx.E, litri=M.costoCarburanteAuto(ctx);
+  if (cd){ const an=cd.annuali.slice(0,6);
+    $('#carbBox').innerHTML = `<div class="note">${badges('bolletta')} Fatture IP (2019–2025) e Radius (da novembre 2025): <b>${cd.n_rifornimenti}</b> rifornimenti, ${cd.periodo[0]} → ${cd.periodo[1]}, tutti gasolio, targa auto. Ultimi 12 mesi: <b>${fmt(cd.litri12m)} l</b> in totale, <b>${fmt(cd.spesa12m_netta)} €</b> senza IVA (${fmt(cd.prezzo_netto_medio12m,3)} €/l; con IVA ${fmt(cd.spesa12m)} €). Litri dell'auto da sostituire: ${f.quota==='meta'?'metà':f.quota==='seconda'?'seconda auto':'prima auto'} = <b>${fmt(f.litriAuto)} l/anno</b> → ${fmt(litri.euro)} € di gasolio all'anno. <b>La divisione tra le due auto è da confermare.</b></div>
+      <div class="tscroll"><table><thead><tr><th>12 mesi fino al</th><th>Litri totali</th><th>Seconda auto</th><th>Prima auto</th><th>Spesa senza IVA</th><th>€/l senza IVA</th><th>Rifornimenti</th></tr></thead><tbody>${an.map(a=>`<tr><td>${a.fino_a}</td><td>${fmt(a.litri)}</td><td>${fmt(a.litri_seconda)}</td><td>${fmt(a.litri_prima)}</td><td>${fmt(a.spesa_netta)} €</td><td>${fmt(a.prezzo_netto,3)}</td><td>${a.n}</td></tr>`).join('')}</tbody></table></div>
+      <div class="tscroll" style="margin-top:8px"><table><thead><tr><th>Ipotesi di consumo (media semplice)</th><th>Litri dell'auto/anno</th><th>Km possibili</th><th>Gasolio senza IVA</th></tr></thead><tbody>${[5.5,7,8.5].map(l=>`<tr><td>${fmt(l,1)} l/100 km</td><td>${fmt(f.litriAuto)}</td><td>${fmt(f.litriAuto/l*100)}</td><td>${fmt(litri.euro)} €</td></tr>`).join('')}</tbody></table></div>
+      <div class="sub">Letture del contachilometri (solo auto): ~12.000 km/anno; con metà dei litri danno 6,2–7,6 l/100 km, coerente con l'ipotesi di 7. I litri della carta sono saliti di circa un terzo dal 2025.</div>`;
+  } else $('#carbBox').innerHTML = `<div class="note r">${badges('confermare')} Nessun dato di carburante caricato: uso ${fmt(car.evKm)} km/anno, ${car.iceL} l/100 km, ${fmt(car.diesel,2)} €/l senza IVA.</div>`;
+  /* 8b condizionatori in inverno */
+  const row0=(l,v,c='')=>`<tr class="${c}"><td>${l}</td><td>${v}</td></tr>`;
+  const sc_=M.stimaClima(ctx,P.heating==='no'?'no':P.heating), hh=P.heating;
+  $('#tClimaStima').innerHTML = `<thead><tr><th>Condizionatori d'inverno (${fmt(sc_.quota)}% del riscaldamento), senza fotovoltaico</th><th>Valore</th></tr></thead><tbody>`+
+    row0('Gas non più bruciato', fmt(sc_.climaGas)+' Smc')+row0('Gas evitato', eur(sc_.gasEvitato))+row0('Elettricità in più ('+fmt(sc_.kwh)+' kWh a '+fmt(E.luce,3)+' €/kWh)', '−'+fmt(sc_.elettricita)+' €')+
+    row0('<b>Beneficio netto all\'anno</b>', `<b>${eur(sc_.nettoAnno)}</b>`,'cur')+row0('Costo di un kWh di calore con il gas', fmt(sc_.costoTermGas,3)+' €')+row0('Costo di un kWh di calore con i condizionatori (COP '+fmt(sc_.cop,1)+')', fmt(sc_.costoTermClima,3)+' €')+row0('Investimento', '0 € (già installati)')+'</tbody>';
+  const cOn=M.contesto(D,Object.assign({},PM,{climaInv:'si'})), cOff=M.contesto(D,Object.assign({},PM,{climaInv:'no'})), mkR=(c,cf)=>M.valuta(c,Object.assign({},cf,{riscaldamento:hh}));
+  const ab=['A','B'].map(l=>({l,on:mkR(cOn,CFG[l]),off:mkR(cOff,CFG[l])}));
+  $('#tClimaAB').innerHTML = `<thead><tr><th>Con il fotovoltaico</th>${ab.map(x=>`<th>Scenario ${x.l}: senza</th><th>con condizionatori</th>`).join('')}</tr></thead><tbody>`+
+    [['Luce consumata (kWh/anno)',x=>fmt(x.consTot)],['… di cui usata dal fotovoltaico',x=>fmt(x.used)+' ('+fmt(x.scRate*100)+'%)'],['Luce comprata dalla rete (kWh)',x=>fmt(x.imp)],['Gas bruciato (Smc)',x=>fmt(cOn.M.gasTot-x.ris.gasTot)],['Beneficio all\'anno',x=>eur(x.net)],['Guadagno a '+H+' anni',x=>eur(x.gain)]]
+      .map(([n,f])=>`<tr><td>${n}</td>${ab.map(x=>`<td>${f(x.off)}</td><td class="cur">${f(x.on)}</td>`).join('')}</tr>`).join('')+`<tr style="font-weight:650"><td>Guadagno extra dei condizionatori</td>${ab.map(x=>`<td></td><td>${eur(x.on.gain-x.off.gain)}</td>`).join('')}</tr></tbody>`;
+  const qs=[10,25,40,50], gq=qs.map(q=>{ const c=M.contesto(D,Object.assign({},PM,{climaInv:'si',ov:Object.assign({},PM.ov,{climaQuota:q})})); return ['A','B'].map(l=>M.valuta(c,Object.assign({},CFG[l],{riscaldamento:hh})).gain-ab.find(x=>x.l===l).off.gain); });
+  $('#climaFut').innerHTML = `<div class="note v"><b>Quanto conta la quota</b> (guadagno extra a ${H} anni, scenario A / B): ${qs.map((q,i)=>`${q}% → ${eur(gq[i][0])} / ${eur(gq[i][1])}`).join(' · ')}. ${badges('calcolo','confermare')}</div>
+    <div class="note">Anche senza fotovoltaico un kWh di calore dai condizionatori costa meno (${fmt(sc_.costoTermClima,3)} €) di uno dal gas (${fmt(sc_.costoTermGas,3)} €), se il COP regge. Il sole in più rende il vantaggio più grande perché la corrente non si compra. Valgono solo le stanze raggiunte dai condizionatori: il resto resta ai termosifoni. Se poi si installa la pompa di calore, i condizionatori prendono solo il gas che la pompa lascia.</div>
+    <div class="note a">Il raffrescamento estivo (circa ${fmt(sum(ctx.M.cool))} kWh/anno) è già dentro i consumi di luce dalle estati con i condizionatori e viene distribuito nelle ore calde, quindi sovrapposto alla produzione. ${badges('bolletta','stima')}</div>`;
+  /* 8c pompa: oggi solo il Secondo piano; le opzioni del Primo solo dopo la ristrutturazione */
+  const refc=M.valuta(ctx,Object.assign({},cfg,{riscaldamento:'no'})), ctxF=M.contesto(D,Object.assign({},PM,{ap:'both',primoMode:P.primoMode==='spento'?'secondo':P.primoMode})), refF=M.valuta(ctxF,Object.assign({},cfg,{riscaldamento:'no'}));
+  const hd=`<thead><tr><th class="w">Soluzione</th><th>Costo</th><th>Incentivo</th><th>Netto</th><th>Gas evitato</th><th>Elettricità in più</th><th>Beneficio/anno</th><th>Si ripaga da sola in</th><th>Con fotovoltaico A: guadagno extra</th></tr></thead><tbody>`;
+  const prow=o=>{ const fut=o==='unica'||o==='due'||o==='primo', c=fut?ctxF:ctx, ref=fut?refF:refc, s=M.stimaPompa(c,o), r=M.valuta(c,Object.assign({},cfg,{riscaldamento:o}));
+    if(o==='no') return `<tr class="${P.heating==='no'?'cur':''}"><td class="w">${M.RISCALDAMENTO.no}</td>${'<td>–</td>'.repeat(8)}</tr>`;
+    return `<tr class="${o===P.heating?'cur':''}"><td class="w">${s.label}</td><td>${fmt(s.investimento)} €</td><td>−${fmt(s.incentivo)} €</td><td>${fmt(s.investimentoNetto)} €</td><td>${fmt(s.gasSmc)} Smc · ${fmt(s.gasEvitato)} €</td><td>${fmt(s.pdc)} kWh · ${fmt(s.elettricita)} €</td><td>${eur(s.nettoAnno)}</td><td>${pb(s.rientroSemplice)}</td><td>${eur(r.gain-ref.gain)} · ${pb(M.annoSorpasso(ref,r))}</td></tr>`; };
+  $('#tPompaStima').innerHTML = hd+prow('no')+prow('secondo')+`<tr><td colspan="9" class="w sub"><b>Dopo la ristrutturazione del Primo piano</b> (impianto rifatto da zero, due appartamenti abitati, COP del Primo ${fmt(E.hpCopPrimo,1)}). Il «guadagno extra» è calcolato con i consumi dei due appartamenti.</td></tr>`+prow('unica')+prow('due')+prow('primo')+'</tbody>';
+  const u=M.stimaPompa(ctxF,'unica'), s2=M.stimaPompa(ctx,'secondo');
+  $('#riscNote').innerHTML = `<div class="note"><b>Termosifoni classici ad acqua (Secondo piano, non modificabili):</b> la pompa lavora a mandata alta, quindi uso un COP di ${fmt(E.hpCop,1)} invece di 3,5–4,5 degli impianti a pavimento. Riscaldare il Secondo piano costa ${fmt(s2.investimento)} € e sostituisce ${fmt(s2.gasSmc)} Smc di gas con ${fmt(s2.pdc)} kWh di luce. Per vedere quanto pesa il COP, cambialo nella casella qui sotto. ${badges('stima','confermare')}</div>
+    <div class="note a"><b>Primo piano:</b> oggi vuoto e usato solo a volte, quindi non lo considero per la pompa. Quando verrà ristrutturato con un impianto fatto apposta (COP ${fmt(E.hpCopPrimo,1)}), una pompa unica costerebbe circa ${fmt(u.investimento)} € per ${fmt(u.gasSmc)} Smc complessivi. ${badges('confermare')}</div>
+    <div class="note a">La caldaia è del 2021 e l'acqua calda viene dal solare termico: la parte di gas che la pompa sostituirebbe è soprattutto riscaldamento. Se installi la pompa tra qualche anno il risparmio non cambia, ma si usa più a lungo la caldaia già pagata: scelta da fare insieme. ${badges('confermare')}</div>`;
+  const st=u=>fmt(M.gasPeriodo(D,PM,u,ctx.rng)), ul=u=>fmt(M.gasUltimiValidi(D,PM,u));
+  $('#gPri').textContent=fmt(mm.parts[0].on?mm.parts[0].gas:0); $('#gSec').textContent=fmt(mm.parts[1].on?mm.parts[1].gas:0);
+  $('#gPriP').textContent=st('Primo piano'); $('#gPriU').textContent=ul('Primo piano'); $('#gSecP').textContent=st('Secondo piano'); $('#gSecU').textContent=ul('Secondo piano');
+  /* 8d combinazioni (solo Secondo piano) */
+  const hs='secondo', combos=[['Nessuna: vecchia diesel + gas',0,'no',false],[`${nE} ${nE>1?'auto elettriche':'auto elettrica'}`,nE,'no',false],['Condizionatori in inverno',0,'no',true],['Pompa di calore (2° piano)',0,hs,false],[`${nE>1?nE+' elettriche':'1 elettrica'} + pompa`,nE,hs,false],[`${nE>1?nE+' elettriche':'1 elettrica'} + condizionatori in inverno`,nE,'no',true]];
+  const cm=combos.map(([l,n,h,ac])=>{ const c=M.contesto(D,Object.assign({},PM,{climaInv:ac?'si':'no'})); return {l,n,h,w:M.valuta(c,{kwp:0,batt:0,riscaldamento:h,nev:n,nBase:nE}),a:M.valuta(c,Object.assign({},CFG.A,{riscaldamento:h,nev:n,nBase:nE})),b:M.valuta(c,Object.assign({},CFG.B,{riscaldamento:h,nev:n,nBase:nE}))}; });
+  $('#tCombo').innerHTML = `<thead><tr><th class="w">Combinazione</th><th>Luce kWh/anno</th><th>Senza FV: beneficio</th><th>A: luce coperta</th><th>A: beneficio</th><th>A: rientro</th><th>A: guadagno</th><th>B: luce coperta</th><th>B: beneficio</th><th>B: rientro</th><th>B: guadagno</th></tr></thead><tbody>`+
+    cm.map(c=>`<tr><td class="w">${c.l}</td><td>${fmt(c.a.consTot)}</td><td>${eur(c.w.net)}</td><td>${fmt(c.a.cover*100)}%</td><td>${eur(c.a.net)}</td><td>${pb(c.a.payback)}</td><td>${eur(c.a.gain)}</td><td>${fmt(c.b.cover*100)}%</td><td>${eur(c.b.net)}</td><td>${pb(c.b.payback)}</td><td>${eur(c.b.gain)}</td></tr>`).join('')+'</tbody>';
+}
+
+/* ---- 9. fonti, mancanti, dati ---- */
+function renderFonti(){
+  const reg=M.registro(D,PM), grps=['tutti',...new Set(reg.map(r=>r.grp))];
+  const sel=$('#fGrp'); if(!sel.options.length){ sel.innerHTML=grps.map(g=>`<option value="${g}">${g==='tutti'?'tutti i gruppi':g}</option>`).join(''); sel.onchange=e=>{fGrp=e.target.value; renderFonti(); }; }
+  $('#legendFonti').innerHTML = Object.keys(TIPI).map(t=>`${badge(t)}<span>${TIPI[t][1]}</span>`).join('');
+  $('#tFonti').innerHTML = `<thead><tr><th>Parametro</th><th>Valore</th><th>Unità</th><th>Fonte</th><th class="w">Da dove arriva</th></tr></thead><tbody>`+
+    reg.filter(r=>fGrp==='tutti'||r.grp===fGrp).map(r=>{ const v=ctx.E[r.k], mod=P.ov[r.k]!==undefined, ctl=r.k==='effic';
+      return `<tr><td class="w">${r.label}<div class="sub">${r.grp}</div></td><td>${ctl?fmt(v):`<input class="ov${mod?' mod':''}" type="number" step="${r.step}" data-ov="${r.k}" value="${+(+v).toFixed(4)}">`}${mod?` <button class="del" data-reset="${r.k}" title="Ripristina">↺</button>`:''}</td><td>${r.unit}</td><td>${badge(r.tipo, r.fonte)}</td><td class="w sub">${r.fonte}</td></tr>`; }).join('')+'</tbody>';
+  const mn=window.MANCANTI||[], ord={aperto:0,info:1,chiuso:2}, cl={aperto:'r',info:'a',chiuso:''}, lab={aperto:'DA CHIUDERE',info:'REGISTRATO',chiuso:'CHIUSO'};
+  $('#mancano').innerHTML = mn.slice().sort((a,b)=>ord[a.stato]-ord[b.stato]).map(m=>`<div class="note ${cl[m.stato]}"><b>[${lab[m.stato]}] ${m.area}</b> — ${m.cosa} <span class="sub">${m.impatto||''} ${m.azione?'· Azione: '+m.azione:''} · ${m.data}</span></div>`).join('');
+}
+function renderDati(){
+  const rows=D.rows.slice().sort((a,b)=>b.mese.localeCompare(a.mese)||a.unita.localeCompare(b.unita)).slice(0,96), c=v=>isFinite(v)?fmt(v,1):'–';
+  $('#tDati').innerHTML = `<thead><tr>${['Mese','Unità','F1','F2','F3','Totale kWh','€','€/kWh','kW max','Escluso','Fonte',''].map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>`+
+    rows.map(r=>{ const mi=r.src==='manuale'?manual.findIndex(m=>m.mese===r.mese&&m.unita===r.unita):-1, es=M.motivoEsclusione(PM,r.unita,r.mese);
+      return `<tr><td>${r.mese}</td><td>${r.unita}</td><td>${c(r.f1)}</td><td>${c(r.f2)}</td><td>${c(r.f3)}</td><td>${fmt(r.tot,1)}</td><td>${c(r.euro)}</td><td>${isFinite(r.euro)&&r.tot>=15?fmt(r.euro/r.tot,3):'–'}</td><td>${c(r.pmax)}</td><td class="w sub">${es||''}</td><td>${r.src}</td><td>${mi>=0?`<button class="del" data-del="${mi}">✕</button>`:''}</td></tr>`; }).join('')+'</tbody>';
+  $('#curveInfo').innerHTML = CURVE ? `Caricata: <b>${CURVE.giorni}</b> giorni (${CURVE.da} → ${CURVE.a}), potenza massima <b>${fmt(CURVE.pmax,1)} kW</b>.` : 'Nessuna curva caricata: uso il profilo orario scelto in alto.';
+}
+
+/* ============================== controlli ============================== */
+function syncControlli(){
+  document.querySelectorAll('[data-k]').forEach(el=>{ if(el===document.activeElement) return; const v=P[el.dataset.k]; if(v===undefined) return;
+    if (el.type==='checkbox') el.checked=!!v && v!=='false'; else if (String(el.value)!==String(v)) el.value=v; });
+  document.querySelectorAll('[data-ov]').forEach(el=>{ if(el===document.activeElement) return; const v=ctx.E[el.dataset.ov]; if(v!==undefined) el.value=+(+v).toFixed(4); el.classList.toggle('mod', P.ov[el.dataset.ov]!==undefined); });
+  document.querySelectorAll('[data-show]').forEach(el=>{ const [k,v]=el.dataset.show.split('='); el.hidden = String(P[k])!==v; });
+  $('#optCurva').hidden = !CURVE;
+  document.querySelectorAll('[data-ab]').forEach(b=>b.classList.toggle('on', b.dataset.ab===selAB));
+  document.querySelectorAll('#segHist button').forEach(b=>b.classList.toggle('on', b.dataset.m===histMode));
+  document.querySelectorAll('#segHeat button').forEach(b=>b.classList.toggle('on', b.dataset.heat===heatMetric));
+}
+document.addEventListener('change', e=>{
+  const el=e.target;
+  if (el.dataset.k){ P[el.dataset.k] = el.type==='checkbox' ? el.checked : el.type==='number' ? (isFinite(parseFloat(el.value))?parseFloat(el.value):0) : el.value; saveP(); renderAll(); }
+  else if (el.dataset.ov){ const v=parseFloat(el.value); if(isFinite(v)) P.ov[el.dataset.ov]=v; else delete P.ov[el.dataset.ov]; saveP(); renderAll(); }
+});
+document.addEventListener('click', e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if (b.dataset.ab){ selAB=b.dataset.ab; renderAll(); }
+  else if (b.dataset.preset){ applicaPreset(b.dataset.preset); }
+  else if (b.dataset.m){ histMode=b.dataset.m; renderAll(); }
+  else if (b.dataset.heat){ heatMetric=b.dataset.heat; renderAll(); }
+  else if (b.dataset.reset){ delete P.ov[b.dataset.reset]; saveP(); renderAll(); }
+  else if (b.dataset.del){ manual.splice(+b.dataset.del,1); store.set(KEY+'_manual',manual); renderAll(); }
+});
+function barShow(show){ $('#groups').hidden=!show; $('#presetRow').hidden=!show; $('#barSumRow').hidden=show; }
+$('#barToggle').onclick = ()=>barShow(false);
+$('#barToggle2').onclick = ()=>barShow(true);
+$('#resetOv').onclick = ()=>{ P.ov={}; saveP(); renderAll(); };
+$('#resetAll').onclick = ()=>{ P=Object.assign({},DEF,{ov:{}}); saveP(); renderAll(); };
+$('#themeBtn').onclick = ()=>{ const dark=document.documentElement.dataset.theme==='dark'||(!document.documentElement.dataset.theme&&matchMedia('(prefers-color-scheme:dark)').matches); document.documentElement.dataset.theme=dark?'light':'dark'; renderAll(); };
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>renderAll());
+
+/* curva di carico e CSV */
+function parseCurve(text){
+  const lines=text.replace(/\r/g,'').split('\n').filter(l=>l.trim()), num=M.num;
+  const sep=(lines.slice(0,5).join('').match(/;/g)||[]).length?';':(lines[0].includes('\t')?'\t':',');
+  let hdr=[]; const sumH=Array.from({length:12},()=>new Array(24).fill(0)), dset=Array.from({length:12},()=>new Set()), recs=[]; let minMin=1e9; const dates=new Set();
+  const dre1=/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})/, dre2=/(\d{4})-(\d{2})-(\d{2})/, tre=/(\d{1,2}):(\d{2})/;
+  for (const line of lines){
+    const c=line.split(sep).map(x=>x.trim().replace(/^"|"$/g,'')); let d=null,t=null,iDT=-1;
+    for (let i=0;i<c.length;i++){ let m=c[i].match(dre2); if(m){d=[+m[1],+m[2],+m[3]]} else { m=c[i].match(dre1); if(m){d=[+m[3],+m[2],+m[1]]} }
+      if (d && !t){ const mt=c[i].match(tre); if(mt) t=[+mt[1],+mt[2]]; } if (d){ iDT=i; break; } }
+    if (!d){ if(!hdr.length) hdr=c.map(x=>x.toLowerCase()); continue; }
+    if (!t){ for (let i=iDT+1;i<c.length;i++){ const mt=c[i].match(tre); if(mt){t=[+mt[1],+mt[2]]; iDT=i; break;} } }
+    if (!t) continue;
+    let val=NaN, vi=-1; for (let i=iDT+1;i<c.length;i++){ if(tre.test(c[i])) continue; const v=num(sep===';'?c[i]:c[i].replace(',','.')); if(isFinite(v)){val=v;vi=i;break;} }
+    if (!isFinite(val)) continue;
+    recs.push({y:d[0],mo:d[1],d:d[2],mi:t[0]*60+t[1],v:val,vi}); minMin=Math.min(minMin,t[0]*60+t[1]);
+  }
+  if (recs.length<96) throw new Error('Non ho riconosciuto abbastanza righe (servono data, ora e valore).');
+  const diffs={}; for(let i=1;i<Math.min(recs.length,2000);i++){ if(recs[i].d===recs[i-1].d){const x=recs[i].mi-recs[i-1].mi; if(x>0)diffs[x]=(diffs[x]||0)+1;} }
+  const interval=+Object.entries(diffs).sort((a,b)=>b[1]-a[1])[0]?.[0] || 15, hv=hdr[recs[0].vi]||'', isKw=/kw/.test(hv)&&!/kwh/.test(hv), shift=(minMin>0&&minMin<=interval)?interval:0;
+  let pmax=0, minD='9999', maxD='0000';
+  recs.forEach(r=>{ const kwh=isKw?r.v*interval/60:r.v; pmax=Math.max(pmax,isKw?r.v:r.v*60/interval); const mi=Math.max(0,r.mi-shift), h=Math.min(23,Math.floor(mi/60)), mo=r.mo-1; if(mo<0||mo>11) return;
+    sumH[mo][h]+=kwh; dset[mo].add(r.y+'-'+r.d); const ds=`${r.y}-${String(r.mo).padStart(2,'0')}-${String(r.d).padStart(2,'0')}`; dates.add(ds); if(ds<minD)minD=ds; if(ds>maxD)maxD=ds; });
+  const have=sumH.map((r,m)=>dset[m].size?r.map(v=>v/dset[m].size):null), mean=Array(24).fill(0); let n=0;
+  have.forEach(r=>{ if(r){ const t=sum(r)||1; r.forEach((v,h)=>mean[h]+=v/t); n++; } });
+  const shape=have.map(r=>{ if(!r) return mean.map(v=>v/n); const t=sum(r)||1; return r.map(v=>v/t); });
+  return {shape:shape.map(r=>r.map(v=>Math.round(v*1e5)/1e5)), pmax:Math.round(pmax*100)/100, giorni:dates.size, da:minD, a:maxD};
+}
+$('#fileCurve').onchange=e=>{ const f=e.target.files[0]; if(!f) return; f.text().then(t=>{ try{ CURVE=parseCurve(t); store.set(KEY+'_curve',CURVE); P.profilo='curva'; saveP(); renderAll(); }catch(err){ alert('Curva non letta: '+err.message); } }); e.target.value=''; };
+$('#clearCurve').onclick=()=>{ CURVE=null; store.set(KEY+'_curve',null); if(P.profilo==='curva')P.profilo='misto'; saveP(); renderAll(); };
+function parseCsv(text){ const l=text.replace(/\r/g,'').split('\n').filter(x=>x.trim()); if(!l.length) return []; const sep=l[0].includes(';')?';':',', head=l[0].split(sep).map(h=>h.trim().toLowerCase()); return l.slice(1).map(x=>{ const c=x.split(sep), o={}; head.forEach((h,i)=>o[h]=(c[i]||'').trim()); return o; }); }
+$('#addRow').onclick=()=>{ const v=prompt('Riga: mese;unità;F1;F2;F3;totale;euro;giorni;kW max\nEs: 2026-03;Secondo piano;95;60;110;265;78,4;31;3,2'); if(!v) return; const c=v.split(';').map(x=>x.trim());
+  const o={mese:c[0],unita:c[1]||'Secondo piano',kwh_f1:c[2],kwh_f2:c[3],kwh_f3:c[4],kwh_tot:c[5],euro:c[6],giorni:c[7],pot_max_kw:c[8]};
+  if(!M.normalizza(o)){ alert('Riga non valida: servono mese (AAAA-MM) e kWh totali.'); return; } manual.push(o); store.set(KEY+'_manual',manual); renderAll(); };
+$('#clearManual').onclick=()=>{ if(confirm('Eliminare le righe inserite a mano?')){ manual=[]; store.set(KEY+'_manual',manual); renderAll(); } };
+$('#fileCsv').onchange=e=>{ const f=e.target.files[0]; if(!f) return; f.text().then(t=>{ const rs=parseCsv(t).filter(r=>M.normalizza(r)); manual=manual.concat(rs); store.set(KEY+'_manual',manual); renderAll(); alert(rs.length+' righe importate.'); }); e.target.value=''; };
+$('#expCsv').onclick=()=>{ const f=v=>isFinite(v)?String(v).replace('.',','):''; const csv=['mese;unita;kwh_f1;kwh_f2;kwh_f3;kwh_tot;euro;giorni;pot_max_kw',...D.rows.map(r=>[r.mese,r.unita,f(r.f1),f(r.f2),f(r.f3),f(r.tot),f(r.euro),f(r.giorni),f(r.pmax)].join(';'))].join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='consumi.csv'; a.click(); };
+
+/* ============================== avvio ============================== */
+if (innerWidth<760) barShow(false);
+renderAll();
+</script>
+</body>
+</html>
